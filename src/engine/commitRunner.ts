@@ -5,6 +5,8 @@ import { GitExec } from './gitExec';
 export interface CommitRunnerOptions {
   dryRun?: boolean;
   verbose?: boolean;
+  email?: string;
+  force?: boolean;
 }
 
 export class CommitRunner {
@@ -21,8 +23,8 @@ export class CommitRunner {
     Logger.info(`Starting Commit Execution Engine (Pattern: '${summary.patternName}', Dry Run: ${Boolean(this.options.dryRun)})`);
 
     let existingSignatures = new Set<string>();
-    if (!this.options.dryRun) {
-      existingSignatures = GitExec.getExistingSignatures();
+    if (!this.options.dryRun && !this.options.force) {
+      existingSignatures = GitExec.getExistingSignatures(this.options.email);
     }
 
     let executedCount = 0;

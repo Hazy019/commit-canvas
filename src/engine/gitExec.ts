@@ -69,16 +69,28 @@ export class GitExec {
 
   /**
    * Fetches recent git commit messages from current branch history to check for idempotency.
+   * If targetEmail is provided, only commits authored by targetEmail are counted as existing.
    */
-  public static getExistingSignatures(maxCommits = 5000, cwd: string = process.cwd()): Set<string> {
+  public static getExistingSignatures(targetEmail?: string, maxCommits = 5000, cwd: string = process.cwd()): Set<string> {
     try {
-      const output = GitExec.run(`git log -n ${maxCommits} --format="%s"`, {}, cwd);
+      const format = '%ae|%s';
+      const output = GitExec.run(`git log -n ${maxCommits} --format="${format}"`, {}, cwd);
       const signatures = new Set<string>();
       if (!output) return signatures;
 
       const lines = output.split('\n');
       for (const line of lines) {
-        const match = line.match(/\[commit-canvas-filter:[^\]]+\]/);
+        const [authorEmail, subject] = line.split('|');
+        if (!subject) continue;
+
+        // If targetEmail is specified, skip signatures authored by a different email (e.g. old bot runs)
+        if (targetEmail && authorEmail) {
+          if (authorEmail.trim().toLowerCase() !== targetEmail.trim().toLowerCase()) {
+            continue;
+          }
+        }
+
+        const match = subject.match(/\[commit-canvas-filter:[^\]]+\]/);
         if (match) {
           signatures.add(match[0]);
         }

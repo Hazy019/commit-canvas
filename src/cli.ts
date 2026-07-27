@@ -58,12 +58,16 @@ program
   .option('-p, --pattern <name>', 'Pattern rule name', 'all-but-sat')
   .option('-d, --dry-run', 'Simulate execution without modifying git history', false)
   .option('-e, --end-date <date>', 'Target end date override (YYYY-MM-DD)')
+  .option('-m, --email <email>', 'Target author email for contribution attribution')
+  .option('-f, --force', 'Bypass idempotency check and force re-committing pattern', false)
   .action((options) => {
     try {
       const weeks = parseInt(options.weeks, 10);
       const intensity = parseInt(options.intensity, 10) as IntensityLevel;
       const pattern = options.pattern as PatternName;
       const dryRun = Boolean(options.dryRun);
+      const email = options.email;
+      const force = Boolean(options.force);
 
       const engine = new PatternEngine({
         weeks,
@@ -73,7 +77,7 @@ program
       });
 
       const summary = engine.generatePlan();
-      const runner = new CommitRunner({ dryRun });
+      const runner = new CommitRunner({ dryRun, email, force });
       runner.run(summary);
     } catch (err: any) {
       Logger.error(`Sync failed: ${err.message}`);

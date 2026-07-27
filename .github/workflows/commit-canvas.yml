@@ -45,10 +45,17 @@ jobs:
         run: |
           INTENSITY="${{ inputs.intensity }}"
           WEEKS="${{ inputs.weeks }}"
+          USER_EMAIL="${{ inputs.user_email }}"
           # Fallback for schedule events where inputs are empty
           INTENSITY="${INTENSITY:-2}"
           WEEKS="${WEEKS:-52}"
-          npx ts-node src/cli.ts sync --pattern=all-but-sat --intensity=$INTENSITY --weeks=$WEEKS
+          if [ -z "$USER_EMAIL" ]; then
+            USER_EMAIL="${{ secrets.GIT_USER_EMAIL }}"
+          fi
+          if [ -z "$USER_EMAIL" ]; then
+            USER_EMAIL="${{ github.actor }}@users.noreply.github.com"
+          fi
+          npx ts-node src/cli.ts sync --pattern=all-but-sat --intensity=$INTENSITY --weeks=$WEEKS --email="$USER_EMAIL"
 
       - name: Verify Git History Rule Compliance
         id: verify
