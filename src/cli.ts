@@ -109,4 +109,24 @@ program
     }
   });
 
+/**
+ * HEAL COMMAND
+ * Automatically drops violating Saturday commits from git history.
+ */
+program
+  .command('heal')
+  .description('Automated self-healing: drops any violating Saturday commits via rebase')
+  .option('-b, --branch <name>', 'Branch to heal', 'main')
+  .option('-m, --max-commits <number>', 'Maximum commits to scan', '5000')
+  .action(async (options) => {
+    try {
+      const maxCommits = parseInt(options.maxCommits, 10);
+      const { Healer } = await import('./engine/healer');
+      Healer.heal(options.branch, maxCommits);
+    } catch (err: any) {
+      Logger.error(`Healing failed: ${err.message}`);
+      process.exit(1);
+    }
+  });
+
 program.parse(process.argv);
