@@ -1,0 +1,35 @@
+{
+  "name": "commit-canvas-filter",
+  "version": "1.0.0",
+  "description": "Automated git contribution pattern engine with day-of-week procedural filtering.",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "bin": {
+    "commit-canvas": "bin/commit-canvas.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "start": "ts-node src/cli.ts",
+    "preview": "ts-node src/cli.ts preview",
+    "sync": "ts-node src/cli.ts sync",
+    "verify": "ts-node src/cli.ts verify",
+    "test": "ts-node tests/run.ts"
+  },
+  "keywords": [
+    "git",
+    "contributions",
+    "activity-grid",
+    "github-actions",
+    "commit-canvas"
+  ],
+  "author": "Antigravity",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "typescript": "^5.3.3",
+    "ts-node": "^10.9.2"
+  },
+  "dependencies": {
+    "commander": "^12.0.0"
+  }
+}
