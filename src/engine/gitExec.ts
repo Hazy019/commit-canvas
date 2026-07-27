@@ -35,34 +35,35 @@ export class GitExec {
   }
 
   /**
-   * Creates empty commits in a single batched shell script to avoid process overhead and git lock issues.
+   * Creates empty commits cleanly and rapidly in pure Node to avoid shell script cross-platform bugs.
    */
   public static createEmptyCommitsBatch(commits: GitCommitOptions[], cwd: string = process.cwd()): void {
     if (commits.length === 0) return;
-    
-    const os = require('os');
-    const fs = require('fs');
-    const path = require('path');
-    
-    const tmpDir = os.tmpdir();
-    const scriptPath = path.join(tmpDir, `commit-canvas-batch-${Date.now()}.sh`);
-    
-    // Disable GC auto to prevent background GC from interfering with rapid commits
-    let scriptContent = `#!/bin/sh\ngit config --local gc.auto 0\n`;
-    
-    for (const commit of commits) {
-      const safeMessage = commit.message.replace(/"/g, '\\"');
-      scriptContent += `GIT_AUTHOR_DATE="${commit.timestampIso}" GIT_COMMITTER_DATE="${commit.timestampIso}" git commit --allow-empty -m "${safeMessage}"\n`;
-    }
-    
-    fs.writeFileSync(scriptPath, scriptContent, { mode: 0o755 });
-    
+
+    // Temporarily disable auto-GC during batch creation to avoid background process locks
     try {
-      GitExec.run(`sh "${scriptPath}"`, {}, cwd);
-    } finally {
-      if (fs.existsSync(scriptPath)) {
-        fs.unlinkSync(scriptPath);
-      }
+      GitExec.run('git config --local gc.auto 0', {}, cwd);
+    } catch {
+      // Ignore if repo is not configured yet
+    }
+
+    for (const commit of commits) {
+      const { message, timestampIso } = commit;
+      const env = {
+        GIT_AUTHOR_DATE: timestampIso,
+        GIT_COMMITTER_DATE: timestampIso,
+      };
+      const safeMessage = message.replace(/"/g, '\\"');
+      // Use --quiet to keep stdio buffer light and fast
+      const cmd = `git commit --quiet --allow-empty -m "${safeMessage}"`;
+      GitExec.run(cmd, env, cwd);
+    }
+
+    // Re-enable default auto-GC after batch completion
+    try {
+      GitExec.run('git config --local --unset gc.auto', {}, cwd);
+    } catch {
+      // Ignore
     }
   }
 
