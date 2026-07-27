@@ -1,4 +1,4 @@
-import { DAY_NAMES, PATTERN_RULES } from '../config/patternConfig';
+import { DAY_NAMES, PATTERN_RULES, getSeededRandomCommitCount } from '../config/patternConfig';
 import { CommitDecision, CommitInfo, IntensityLevel, PatternRuleConfig } from '../config/types';
 import { createCommitTimestampUTC, formatDateUTC, getUTCDayOfWeek } from '../utils/timezone';
 
@@ -41,7 +41,7 @@ export class DayOfWeekFilter {
     }
 
     // GENERATE COMMITS PATH
-    const commitCount = this.rule.intensityCommitMap[this.intensity] ?? 5;
+    const commitCount = getSeededRandomCommitCount(dateStr, this.intensity);
     const commits: CommitInfo[] = [];
 
     for (let i = 1; i <= commitCount; i++) {
