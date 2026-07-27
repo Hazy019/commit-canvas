@@ -64,13 +64,13 @@ jobs:
           echo "Healing complete. Re-verifying..."
           npx ts-node src/cli.ts verify --pattern=all-but-sat
 
-      - name: Push Updated Contribution History (with Retry)
+      - name: Push Updated Contribution History (with Force-With-Lease Fallback)
         run: |
           for i in 1 2 3; do
-            git push origin HEAD:${{ github.ref_name }} && break || {
-              echo "Push failed. Attempt $i of 3..."
-              sleep $(( $i * 5 ))
-              git pull --rebase origin ${{ github.ref_name }}
+            git push --force-with-lease origin HEAD:${{ github.ref_name }} && break || {
+              echo "Push failed. Retrying attempt $i of 3 in $(( $i * 3 ))s..."
+              sleep $(( $i * 3 ))
+              git fetch origin ${{ github.ref_name }}
             }
           done
         env:
