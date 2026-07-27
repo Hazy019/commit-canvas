@@ -43,8 +43,11 @@ jobs:
 
       - name: Execute Commit Canvas Engine (Pattern: all-but-sat)
         run: |
-          INTENSITY="${{ github.event.inputs.intensity || '2' }}"
-          WEEKS="${{ github.event.inputs.weeks || '52' }}"
+          INTENSITY="${{ inputs.intensity }}"
+          WEEKS="${{ inputs.weeks }}"
+          # Fallback for schedule events where inputs are empty
+          INTENSITY="${INTENSITY:-2}"
+          WEEKS="${WEEKS:-52}"
           npx ts-node src/cli.ts sync --pattern=all-but-sat --intensity=$INTENSITY --weeks=$WEEKS
 
       - name: Verify Git History Rule Compliance
