@@ -70,7 +70,7 @@ fs.writeFileSync(file, newLines.join('\\n'));
     try {
       // Execute the rebase
       const env = { 
-        GIT_SEQUENCE_EDITOR: `node ${scriptPath}`.replace(/\\/g, '/') // Ensure forward slashes for cross-platform compat if needed in shell
+        GIT_SEQUENCE_EDITOR: `node "${scriptPath.replace(/\\/g, '/')}"`
       };
       
       // Need to find the oldest violating commit to rebase from
