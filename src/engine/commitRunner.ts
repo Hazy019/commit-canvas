@@ -46,7 +46,10 @@ export class CommitRunner {
           }
           continue;
         }
-        commitsToCreate.push(commit);
+        commitsToCreate.push({
+          message: commit.signature,
+          timestampIso: commit.timestampIso
+        });
         existingSignatures.add(commit.signature);
         dayCommitsCreated++;
         executedCount++;
