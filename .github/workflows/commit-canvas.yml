@@ -41,7 +41,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-      - name: Execute Commit Canvas Engine (Pattern: all-but-sat)
+      - name: "Execute Commit Canvas Engine (Pattern: all-but-sat)"
         run: |
           INTENSITY="${{ inputs.intensity }}"
           WEEKS="${{ inputs.weeks }}"
