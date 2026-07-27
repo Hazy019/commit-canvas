@@ -29,10 +29,41 @@ export class GitExec {
       GIT_AUTHOR_DATE: timestampIso,
       GIT_COMMITTER_DATE: timestampIso,
     };
-    // Escape quote characters in message for shell safety
     const safeMessage = message.replace(/"/g, '\\"');
     const cmd = `git commit --allow-empty -m "${safeMessage}"`;
     return GitExec.run(cmd, env, cwd);
+  }
+
+  /**
+   * Creates empty commits in a single batched shell script to avoid process overhead and git lock issues.
+   */
+  public static createEmptyCommitsBatch(commits: GitCommitOptions[], cwd: string = process.cwd()): void {
+    if (commits.length === 0) return;
+    
+    const os = require('os');
+    const fs = require('fs');
+    const path = require('path');
+    
+    const tmpDir = os.tmpdir();
+    const scriptPath = path.join(tmpDir, `commit-canvas-batch-${Date.now()}.sh`);
+    
+    // Disable GC auto to prevent background GC from interfering with rapid commits
+    let scriptContent = `#!/bin/sh\ngit config --local gc.auto 0\n`;
+    
+    for (const commit of commits) {
+      const safeMessage = commit.message.replace(/"/g, '\\"');
+      scriptContent += `GIT_AUTHOR_DATE="${commit.timestampIso}" GIT_COMMITTER_DATE="${commit.timestampIso}" git commit --allow-empty -m "${safeMessage}"\n`;
+    }
+    
+    fs.writeFileSync(scriptPath, scriptContent, { mode: 0o755 });
+    
+    try {
+      GitExec.run(`sh "${scriptPath}"`, {}, cwd);
+    } finally {
+      if (fs.existsSync(scriptPath)) {
+        fs.unlinkSync(scriptPath);
+      }
+    }
   }
 
   /**
