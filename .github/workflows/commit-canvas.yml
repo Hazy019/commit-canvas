@@ -1,0 +1,58 @@
+name: Commit Canvas Daily Automation
+
+on:
+  schedule:
+    # Run daily at midnight UTC
+    - cron: '0 0 * * *'
+  workflow_dispatch:
+    inputs:
+      intensity:
+        description: 'Intensity Level (1: 1 commit, 2: 5 commits, 3: 10 commits, 4: 15 commits)'
+        required: false
+        default: '2'
+      weeks:
+        description: 'Number of weeks to process'
+        required: false
+        default: '52'
+
+jobs:
+  generate-contribution-pattern:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout Repository History
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Full git history required for verification
+
+      - name: Setup Node.js Environment
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci || npm install
+
+      - name: Configure Git Credentials
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Execute Commit Canvas Engine (Pattern: all-but-sat)
+        run: |
+          INTENSITY="${{ github.event.inputs.intensity || '2' }}"
+          WEEKS="${{ github.event.inputs.weeks || '52' }}"
+          npx ts-node src/cli.ts sync --pattern=all-but-sat --intensity=$INTENSITY --weeks=$WEEKS
+
+      - name: Verify Git History Rule Compliance
+        run: |
+          npx ts-node src/cli.ts verify --pattern=all-but-sat
+
+      - name: Push Updated Contribution History
+        run: |
+          git push origin HEAD:${{ github.ref_name }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
