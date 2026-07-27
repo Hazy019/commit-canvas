@@ -51,11 +51,27 @@ jobs:
           npx ts-node src/cli.ts sync --pattern=all-but-sat --intensity=$INTENSITY --weeks=$WEEKS
 
       - name: Verify Git History Rule Compliance
+        id: verify
+        continue-on-error: true
         run: |
           npx ts-node src/cli.ts verify --pattern=all-but-sat
 
-      - name: Push Updated Contribution History
+      - name: Self-Healing Protocol (Triggered on Verify Failure)
+        if: steps.verify.outcome == 'failure'
         run: |
-          git push origin HEAD:${{ github.ref_name }}
+          echo "Verification failed! Initiating self-healing protocol..."
+          npx ts-node src/cli.ts heal --branch=${{ github.ref_name }}
+          echo "Healing complete. Re-verifying..."
+          npx ts-node src/cli.ts verify --pattern=all-but-sat
+
+      - name: Push Updated Contribution History (with Retry)
+        run: |
+          for i in 1 2 3; do
+            git push origin HEAD:${{ github.ref_name }} && break || {
+              echo "Push failed. Attempt $i of 3..."
+              sleep $(( $i * 5 ))
+              git pull --rebase origin ${{ github.ref_name }}
+            }
+          done
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
