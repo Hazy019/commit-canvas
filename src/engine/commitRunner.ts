@@ -27,6 +27,7 @@ export class CommitRunner {
 
     let executedCount = 0;
     let skippedCount = 0;
+    const commitsToCreate: any[] = [];
 
     for (const decision of summary.decisions) {
       if (!decision.shouldCommit) {
@@ -38,7 +39,6 @@ export class CommitRunner {
 
       // EXECUTE GENERATE COMMITS PATH
       let dayCommitsCreated = 0;
-
       for (const commit of decision.commits) {
         if (existingSignatures.has(commit.signature)) {
           if (this.options.verbose) {
@@ -46,24 +46,20 @@ export class CommitRunner {
           }
           continue;
         }
-
-        if (this.options.dryRun) {
-          dayCommitsCreated++;
-          executedCount++;
-        } else {
-          GitExec.createEmptyCommit({
-            message: commit.signature,
-            timestampIso: commit.timestampIso,
-          });
-          existingSignatures.add(commit.signature);
-          dayCommitsCreated++;
-          executedCount++;
-        }
+        commitsToCreate.push(commit);
+        existingSignatures.add(commit.signature);
+        dayCommitsCreated++;
+        executedCount++;
       }
 
       if (dayCommitsCreated > 0) {
         Logger.commit(decision.dateStr, decision.dayName, dayCommitsCreated);
       }
+    }
+
+    if (!this.options.dryRun && commitsToCreate.length > 0) {
+      Logger.info(`Executing batched git commits (${commitsToCreate.length} commits)...`);
+      GitExec.createEmptyCommitsBatch(commitsToCreate);
     }
 
     Logger.success(`Execution complete! Commits Created: ${executedCount}, Days Skipped: ${summary.skippedDays}`);
