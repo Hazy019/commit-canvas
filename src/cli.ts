@@ -22,7 +22,7 @@ program
   .command('preview')
   .description('Preview the 7x52 contribution activity grid and planned commits')
   .option('-w, --weeks <number>', 'Number of weeks in timeline grid', '52')
-  .option('-i, --intensity <level>', 'Intensity level (1: 1 commit, 2: 5 commits, 3: 10 commits, 4: 15 commits)', '2')
+  .option('-i, --intensity <level>', 'Intensity level (1: 2-8, 2: 5-35 organic, 3: 12-45, 4: 20-60 commits)', '2')
   .option('-p, --pattern <name>', 'Pattern rule name', 'all-but-sat')
   .option('-e, --end-date <date>', 'Target end date override (YYYY-MM-DD)')
   .action((options) => {
