@@ -41,7 +41,10 @@ test('DayOfWeekFilter strictly filters Saturday (day 6)', () => {
   assert.strictEqual(getUTCDayOfWeek(friDate), 5, '2026-07-31 should be Friday (5)');
   const friDecision = filter.evaluateDate(friDate);
   assert.strictEqual(friDecision.shouldCommit, true, 'Friday should have shouldCommit: true');
-  assert.strictEqual(friDecision.plannedCommits, 5, 'Level 2 intensity should generate 5 commits');
+  assert.ok(
+    friDecision.plannedCommits >= 5 && friDecision.plannedCommits <= 35,
+    `Level 2 intensity should generate between 5 and 35 commits (got ${friDecision.plannedCommits})`
+  );
 
   // Test Sunday (2026-07-26 is a Sunday)
   const sunDate = parseDateUTC('2026-07-26');
@@ -71,7 +74,10 @@ test('PatternEngine produces correct active and skipped day breakdown for 52 wee
   assert.strictEqual(plan.skippedDays, 52, '52 weeks should yield exactly 52 skipped Saturdays');
   assert.strictEqual(plan.activeDays, 312, '52 weeks should yield exactly 312 active days (52 * 6)');
   assert.strictEqual(plan.activeDays, plan.skippedDays * 6, 'Sun-Fri active days should be 6x skipped Saturdays');
-  assert.strictEqual(plan.totalCommitsPlanned, plan.activeDays * 5, 'Total commits should equal activeDays * 5');
+  assert.ok(
+    plan.totalCommitsPlanned >= plan.activeDays * 5 && plan.totalCommitsPlanned <= plan.activeDays * 35,
+    `Total commits planned should be within 5-35 range per active day (got ${plan.totalCommitsPlanned})`
+  );
 });
 
 // 4. Verifier Compliance Test on Empty/Valid History

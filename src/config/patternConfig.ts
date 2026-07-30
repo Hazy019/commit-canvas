@@ -18,20 +18,39 @@ export const INTENSITY_COMMIT_MAP: Record<IntensityLevel, number> = {
 };
 
 export const INTENSITY_COMMIT_RANGE_MAP: Record<IntensityLevel, { min: number; max: number }> = {
-  1: { min: 1, max: 3 },
-  2: { min: 5, max: 9 },   // At least 5, random up to 9
-  3: { min: 10, max: 14 }, // At least 10, random up to 14
-  4: { min: 15, max: 20 }, // At least 15, random up to 20
+  1: { min: 2, max: 8 },
+  2: { min: 5, max: 35 },  // Organic human spectrum: 5 to 35 commits
+  3: { min: 12, max: 45 },
+  4: { min: 20, max: 60 },
 };
 
 export function getSeededRandomCommitCount(dateStr: string, intensity: IntensityLevel): number {
-  const range = INTENSITY_COMMIT_RANGE_MAP[intensity] || { min: 5, max: 9 };
   let hash = 0;
   for (let i = 0; i < dateStr.length; i++) {
     hash = (hash << 5) - hash + dateStr.charCodeAt(i);
     hash |= 0;
   }
   const positiveHash = Math.abs(hash);
+
+  if (intensity === 2) {
+    // 4-tier organic distribution for Level 2 (5-35 commits) to populate all 4 green shades on GitHub
+    const roll = positiveHash % 100;
+    if (roll < 20) {
+      // Tier 1 (Light / Dark Green): 5 - 10 commits (~20% of days)
+      return 5 + (positiveHash % 6);
+    } else if (roll < 65) {
+      // Tier 2 (Moderate / Medium Green): 11 - 20 commits (~45% of days)
+      return 11 + (positiveHash % 10);
+    } else if (roll < 90) {
+      // Tier 3 (Heavy / Light Green): 21 - 28 commits (~25% of days)
+      return 21 + (positiveHash % 8);
+    } else {
+      // Tier 4 (Peak Sprint / Bright Lime Green): 29 - 35 commits (~10% of days)
+      return 29 + (positiveHash % 7);
+    }
+  }
+
+  const range = INTENSITY_COMMIT_RANGE_MAP[intensity] || { min: 5, max: 35 };
   const diff = range.max - range.min + 1;
   return range.min + (positiveHash % diff);
 }
