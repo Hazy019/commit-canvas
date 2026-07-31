@@ -11,17 +11,17 @@ export const DAY_NAMES = [
 ] as const;
 
 export const INTENSITY_COMMIT_MAP: Record<IntensityLevel, number> = {
-  1: 1,
-  2: 5,
-  3: 10,
-  4: 15,
+  1: 5,
+  2: 25,
+  3: 45,
+  4: 70,
 };
 
 export const INTENSITY_COMMIT_RANGE_MAP: Record<IntensityLevel, { min: number; max: number }> = {
-  1: { min: 2, max: 8 },
-  2: { min: 5, max: 35 },  // Organic human spectrum: 5 to 35 commits
-  3: { min: 12, max: 45 },
-  4: { min: 20, max: 60 },
+  1: { min: 2, max: 10 },
+  2: { min: 5, max: 60 },  // Organic human spectrum: 5 to 60 commits
+  3: { min: 15, max: 80 },
+  4: { min: 25, max: 100 },
 };
 
 export function getSeededRandomCommitCount(dateStr: string, intensity: IntensityLevel): number {
@@ -33,24 +33,24 @@ export function getSeededRandomCommitCount(dateStr: string, intensity: Intensity
   const positiveHash = Math.abs(hash);
 
   if (intensity === 2) {
-    // 4-tier organic distribution for Level 2 (5-35 commits) to populate all 4 green shades on GitHub
+    // 4-tier organic distribution for Level 2 (5-60 commits) to populate all 4 green shades on GitHub
     const roll = positiveHash % 100;
     if (roll < 20) {
-      // Tier 1 (Light / Dark Green): 5 - 10 commits (~20% of days)
-      return 5 + (positiveHash % 6);
+      // Tier 1 (Light Green / Shade 1): 5 - 12 commits (~20% of days)
+      return 5 + (positiveHash % 8);
     } else if (roll < 65) {
-      // Tier 2 (Moderate / Medium Green): 11 - 20 commits (~45% of days)
-      return 11 + (positiveHash % 10);
+      // Tier 2 (Medium Green / Shade 2): 13 - 25 commits (~45% of days)
+      return 13 + (positiveHash % 13);
     } else if (roll < 90) {
-      // Tier 3 (Heavy / Light Green): 21 - 28 commits (~25% of days)
-      return 21 + (positiveHash % 8);
+      // Tier 3 (Darker Green / Shade 3): 26 - 42 commits (~25% of days)
+      return 26 + (positiveHash % 17);
     } else {
-      // Tier 4 (Peak Sprint / Bright Lime Green): 29 - 35 commits (~10% of days)
-      return 29 + (positiveHash % 7);
+      // Tier 4 (Peak Sprint / Darkest Lime Green): 43 - 60 commits (~10% of days)
+      return 43 + (positiveHash % 18);
     }
   }
 
-  const range = INTENSITY_COMMIT_RANGE_MAP[intensity] || { min: 5, max: 35 };
+  const range = INTENSITY_COMMIT_RANGE_MAP[intensity] || { min: 5, max: 60 };
   const diff = range.max - range.min + 1;
   return range.min + (positiveHash % diff);
 }

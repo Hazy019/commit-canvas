@@ -7,7 +7,7 @@
 The project enforces logical separation of pattern rules from commit execution:
 `Grid Iterator` -> `Pattern Decision Engine` -> `Commit Execution` -> `History Verifier`.
 
-- **`/src/config`**: Intensity rules (Levels 1–4, default Level 2 = 5 commits/day) and `all-but-sat` pattern definition.
+- **`/src/config`**: Intensity rules (Levels 1–4, default Level 2 = 5–60 organic spectrum commits/day) and `all-but-sat` pattern definition.
 - **`/src/logic`**: `DateIterator` for ISO 8601 calendar over 52 weeks and `DayOfWeekFilter` enforcing Saturday skips (`getUTCDay() === 6`).
 - **`/src/engine`**: `GitExec` using `git commit --allow-empty` with `GIT_AUTHOR_DATE` and `GIT_COMMITTER_DATE` overrides, deterministic signatures `[commit-canvas-filter:YYYY-MM-DD:weekday:idx/total]`, and idempotency checking.
 - **`/src/utils`**: Strict UTC date handling and ASCII 7x52 terminal grid visual renderer.

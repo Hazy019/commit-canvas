@@ -22,7 +22,7 @@ program
   .command('preview')
   .description('Preview the 7x52 contribution activity grid and planned commits')
   .option('-w, --weeks <number>', 'Number of weeks in timeline grid', '52')
-  .option('-i, --intensity <level>', 'Intensity level (1: 2-8, 2: 5-35 organic, 3: 12-45, 4: 20-60 commits)', '2')
+  .option('-i, --intensity <level>', 'Intensity level (1: 2-10, 2: 5-60 organic, 3: 15-80, 4: 25-100 commits)', '2')
   .option('-p, --pattern <name>', 'Pattern rule name', 'all-but-sat')
   .option('-e, --end-date <date>', 'Target end date override (YYYY-MM-DD)')
   .action((options) => {
@@ -54,7 +54,7 @@ program
   .command('sync')
   .description('Execute deterministic git commits for the target contribution grid pattern')
   .option('-w, --weeks <number>', 'Number of weeks in timeline grid', '52')
-  .option('-i, --intensity <level>', 'Intensity level (1, 2, 3, 4)', '2')
+  .option('-i, --intensity <level>', 'Intensity level (1: 2-10, 2: 5-60 organic, 3: 15-80, 4: 25-100 commits)', '2')
   .option('-p, --pattern <name>', 'Pattern rule name', 'all-but-sat')
   .option('-d, --dry-run', 'Simulate execution without modifying git history', false)
   .option('-e, --end-date <date>', 'Target end date override (YYYY-MM-DD)')

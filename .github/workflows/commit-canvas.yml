@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       intensity:
-        description: 'Intensity Level (1: 2-8 commits, 2: 5-35 organic spectrum, 3: 12-45 commits, 4: 20-60 commits)'
+        description: 'Intensity Level (1: 2-10 commits, 2: 5-60 organic spectrum, 3: 15-80 commits, 4: 25-100 commits)'
         required: false
         default: '2'
       weeks:
