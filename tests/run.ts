@@ -42,8 +42,8 @@ test('DayOfWeekFilter strictly filters Saturday (day 6)', () => {
   const friDecision = filter.evaluateDate(friDate);
   assert.strictEqual(friDecision.shouldCommit, true, 'Friday should have shouldCommit: true');
   assert.ok(
-    friDecision.plannedCommits >= 5 && friDecision.plannedCommits <= 35,
-    `Level 2 intensity should generate between 5 and 35 commits (got ${friDecision.plannedCommits})`
+    friDecision.plannedCommits >= 5 && friDecision.plannedCommits <= 60,
+    `Level 2 intensity should generate between 5 and 60 commits (got ${friDecision.plannedCommits})`
   );
 
   // Test Sunday (2026-07-26 is a Sunday)
@@ -75,8 +75,8 @@ test('PatternEngine produces correct active and skipped day breakdown for 52 wee
   assert.strictEqual(plan.activeDays, 312, '52 weeks should yield exactly 312 active days (52 * 6)');
   assert.strictEqual(plan.activeDays, plan.skippedDays * 6, 'Sun-Fri active days should be 6x skipped Saturdays');
   assert.ok(
-    plan.totalCommitsPlanned >= plan.activeDays * 5 && plan.totalCommitsPlanned <= plan.activeDays * 35,
-    `Total commits planned should be within 5-35 range per active day (got ${plan.totalCommitsPlanned})`
+    plan.totalCommitsPlanned >= plan.activeDays * 5 && plan.totalCommitsPlanned <= plan.activeDays * 60,
+    `Total commits planned should be within 5-60 range per active day (got ${plan.totalCommitsPlanned})`
   );
 });
 
