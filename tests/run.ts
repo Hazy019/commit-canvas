@@ -80,7 +80,17 @@ test('PatternEngine produces correct active and skipped day breakdown for 52 wee
   );
 });
 
-// 4. Intensity Level 4 Organic Spectrum Test (0 to 80 commits with rest days)
+// 4. Intensity Level 3 Organic Spectrum Test (0 to 55 commits with rest days)
+test('PatternEngine handles Level 3 intensity (0 to 55 commits range with rest days)', () => {
+  const engine = new PatternEngine({ weeks: 52, endDateStr: '2026-07-25', pattern: 'all-but-sat', intensity: 3 });
+  const plan = engine.generatePlan();
+
+  assert.strictEqual(plan.patternName, 'all-but-sat');
+  assert.ok(plan.totalCommitsPlanned > 0, 'Level 3 should generate commits across the year');
+  assert.ok(plan.skippedDays >= 52, 'Level 3 should skip at least 52 Saturdays plus rest days');
+});
+
+// 5. Intensity Level 4 Organic Spectrum Test (0 to 80 commits with rest days)
 test('PatternEngine handles Level 4 intensity (0 to 80 commits range with rest days)', () => {
   const engine = new PatternEngine({ weeks: 52, endDateStr: '2026-07-25', pattern: 'all-but-sat', intensity: 4 });
   const plan = engine.generatePlan();

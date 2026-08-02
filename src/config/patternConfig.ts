@@ -13,14 +13,14 @@ export const DAY_NAMES = [
 export const INTENSITY_COMMIT_MAP: Record<IntensityLevel, number> = {
   1: 5,
   2: 25,
-  3: 45,
+  3: 30,
   4: 48,
 };
 
 export const INTENSITY_COMMIT_RANGE_MAP: Record<IntensityLevel, { min: number; max: number }> = {
   1: { min: 2, max: 10 },
   2: { min: 5, max: 60 },  // Organic human spectrum: 5 to 60 commits
-  3: { min: 15, max: 80 },
+  3: { min: 0, max: 55 },  // Organic moderate spectrum with rest days: 0 to 55 commits
   4: { min: 0, max: 80 },  // Organic spectrum with rest days: 0 to 80 commits (preserving 85-commit organic peak)
 };
 
@@ -47,6 +47,27 @@ export function getSeededRandomCommitCount(dateStr: string, intensity: Intensity
     } else {
       // Tier 4 (Peak Sprint / Darkest Lime Green): 43 - 60 commits (~10% of days)
       return 43 + (positiveHash % 18);
+    }
+  }
+
+  if (intensity === 3) {
+    // 5-tier organic distribution for Level 3 (0-55 commits) including zero-commit rest days
+    const roll = positiveHash % 100;
+    if (roll < 20) {
+      // Tier 0 (Rest Day / Empty): 0 commits (~20% of days)
+      return 0;
+    } else if (roll < 50) {
+      // Tier 1 (Light Green): 1 - 12 commits (~30% of days)
+      return 1 + (positiveHash % 12);
+    } else if (roll < 80) {
+      // Tier 2 (Medium Green): 13 - 28 commits (~30% of days)
+      return 13 + (positiveHash % 16);
+    } else if (roll < 92) {
+      // Tier 3 (Dark Green): 29 - 42 commits (~12% of days)
+      return 29 + (positiveHash % 14);
+    } else {
+      // Tier 4 (Peak Moderate Sprint): 43 - 55 commits (~8% of days)
+      return 43 + (positiveHash % 13);
     }
   }
 
