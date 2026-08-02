@@ -7,11 +7,11 @@ on:
   workflow_dispatch:
     inputs:
       intensity:
-        description: 'Intensity Level (1: 0-10 organic light, 2: 5-60, 3: 0-55 organic moderate, 4: 0-80 organic peak)'
+        description: 'Intensity Level (1: 0-10 light, 2: 0-3 minimal, 3: 0-55 moderate, 4: 0-80 peak - all with high rest days)'
         required: false
         default: '3'
       weeks:
-        description: 'Number of weeks to process (default 1 for current daily run; use 52 for full year backfill)'
+        description: 'Number of weeks to process'
         required: false
         default: '1'
       start_date:
