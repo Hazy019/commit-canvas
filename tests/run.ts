@@ -40,10 +40,9 @@ test('DayOfWeekFilter strictly filters Saturday (day 6)', () => {
   const friDate = parseDateUTC('2026-07-31');
   assert.strictEqual(getUTCDayOfWeek(friDate), 5, '2026-07-31 should be Friday (5)');
   const friDecision = filter.evaluateDate(friDate);
-  assert.strictEqual(friDecision.shouldCommit, true, 'Friday should have shouldCommit: true');
   assert.ok(
-    friDecision.plannedCommits >= 5 && friDecision.plannedCommits <= 60,
-    `Level 2 intensity should generate between 5 and 60 commits (got ${friDecision.plannedCommits})`
+    friDecision.plannedCommits >= 0 && friDecision.plannedCommits <= 3,
+    `Level 2 intensity should generate between 0 and 3 commits (got ${friDecision.plannedCommits})`
   );
 
   // Test Sunday (2026-07-26 is a Sunday)
@@ -66,17 +65,15 @@ test('DateIterator aligns timeline grid over 52 weeks', () => {
 
 // 3. Pattern Engine Generation Tests
 test('PatternEngine produces correct active and skipped day breakdown for 52 weeks', () => {
-  // Pass an endDateStr ending on Saturday to get exactly 52 full weeks (364 days)
-  const engine = new PatternEngine({ weeks: 52, endDateStr: '2026-07-25', pattern: 'all-but-sat', intensity: 2 });
+  // Pass an endDateStr ending on Saturday to get exactly 52 full weeks (364 days) and excludeDates: []
+  const engine = new PatternEngine({ weeks: 52, endDateStr: '2026-07-25', pattern: 'all-but-sat', intensity: 2, excludeDates: [] });
   const plan = engine.generatePlan();
 
   assert.strictEqual(plan.patternName, 'all-but-sat');
-  assert.strictEqual(plan.skippedDays, 52, '52 weeks should yield exactly 52 skipped Saturdays');
-  assert.strictEqual(plan.activeDays, 312, '52 weeks should yield exactly 312 active days (52 * 6)');
-  assert.strictEqual(plan.activeDays, plan.skippedDays * 6, 'Sun-Fri active days should be 6x skipped Saturdays');
+  assert.ok(plan.skippedDays >= 52, '52 weeks should yield at least 52 skipped Saturdays plus rest days');
   assert.ok(
-    plan.totalCommitsPlanned >= plan.activeDays * 5 && plan.totalCommitsPlanned <= plan.activeDays * 60,
-    `Total commits planned should be within 5-60 range per active day (got ${plan.totalCommitsPlanned})`
+    plan.totalCommitsPlanned <= plan.activeDays * 3,
+    `Total commits planned should be within 0-3 range per active day (got ${plan.totalCommitsPlanned})`
   );
 });
 
@@ -88,6 +85,16 @@ test('PatternEngine handles Level 1 intensity (0 to 10 commits range with rest d
   assert.strictEqual(plan.patternName, 'all-but-sat');
   assert.ok(plan.totalCommitsPlanned > 0, 'Level 1 should generate commits across the year');
   assert.ok(plan.skippedDays >= 52, 'Level 1 should skip at least 52 Saturdays plus rest days');
+});
+
+// 5. Intensity Level 2 Organic Spectrum Test (0 to 3 commits with rest days)
+test('PatternEngine handles Level 2 intensity (0 to 3 commits range with rest days)', () => {
+  const engine = new PatternEngine({ weeks: 52, endDateStr: '2026-07-25', pattern: 'all-but-sat', intensity: 2 });
+  const plan = engine.generatePlan();
+
+  assert.strictEqual(plan.patternName, 'all-but-sat');
+  assert.ok(plan.totalCommitsPlanned > 0, 'Level 2 should generate commits across the year');
+  assert.ok(plan.skippedDays >= 52, 'Level 2 should skip at least 52 Saturdays plus rest days');
 });
 
 // 5. Intensity Level 3 Organic Spectrum Test (0 to 55 commits with rest days)
