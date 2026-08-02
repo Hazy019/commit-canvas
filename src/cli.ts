@@ -24,18 +24,23 @@ program
   .option('-w, --weeks <number>', 'Number of weeks in timeline grid', '52')
   .option('-i, --intensity <level>', 'Intensity level (1: 2-10, 2: 5-60 organic, 3: 15-80, 4: 0-95 organic with rest days)', '2')
   .option('-p, --pattern <name>', 'Pattern rule name', 'all-but-sat')
+  .option('-s, --start-date <date>', 'Target start date override (YYYY-MM-DD)')
   .option('-e, --end-date <date>', 'Target end date override (YYYY-MM-DD)')
+  .option('-x, --exclude-dates <dates>', 'Comma-separated dates (MM-DD or YYYY-MM-DD) to exclude for peak preservation', '05-11,05-27,05-28')
   .action((options) => {
     try {
       const weeks = parseInt(options.weeks, 10);
       const intensity = parseInt(options.intensity, 10) as IntensityLevel;
       const pattern = options.pattern as PatternName;
+      const excludeDates = options.excludeDates ? options.excludeDates.split(',').map((d: string) => d.trim()) : undefined;
 
       const engine = new PatternEngine({
         weeks,
         intensity,
         pattern,
+        startDateStr: options.startDate,
         endDateStr: options.endDate,
+        excludeDates,
       });
 
       const summary = engine.generatePlan();
@@ -57,7 +62,9 @@ program
   .option('-i, --intensity <level>', 'Intensity level (1: 2-10, 2: 5-60 organic, 3: 15-80, 4: 0-95 organic with rest days)', '2')
   .option('-p, --pattern <name>', 'Pattern rule name', 'all-but-sat')
   .option('-d, --dry-run', 'Simulate execution without modifying git history', false)
+  .option('-s, --start-date <date>', 'Target start date override (YYYY-MM-DD)')
   .option('-e, --end-date <date>', 'Target end date override (YYYY-MM-DD)')
+  .option('-x, --exclude-dates <dates>', 'Comma-separated dates (MM-DD or YYYY-MM-DD) to exclude for peak preservation', '05-11,05-27,05-28')
   .option('-m, --email <email>', 'Target author email for contribution attribution')
   .option('-f, --force', 'Bypass idempotency check and force re-committing pattern', false)
   .action((options) => {
@@ -68,12 +75,15 @@ program
       const dryRun = Boolean(options.dryRun);
       const email = options.email;
       const force = Boolean(options.force);
+      const excludeDates = options.excludeDates ? options.excludeDates.split(',').map((d: string) => d.trim()) : undefined;
 
       const engine = new PatternEngine({
         weeks,
         intensity,
         pattern,
+        startDateStr: options.startDate,
         endDateStr: options.endDate,
+        excludeDates,
       });
 
       const summary = engine.generatePlan();

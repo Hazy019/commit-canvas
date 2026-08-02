@@ -41,7 +41,9 @@ export interface PreviewOptions {
   weeks?: number;
   intensity?: IntensityLevel;
   pattern?: PatternName;
+  startDate?: string; // YYYY-MM-DD override (e.g. 2026-01-01)
   endDate?: string; // YYYY-MM-DD override
+  excludeDates?: string[]; // Array of YYYY-MM-DD or MM-DD strings to preserve peak organic dates
 }
 
 export interface SyncOptions {
@@ -49,7 +51,9 @@ export interface SyncOptions {
   intensity?: IntensityLevel;
   pattern?: PatternName;
   dryRun?: boolean;
+  startDate?: string; // YYYY-MM-DD override (e.g. 2026-01-01)
   endDate?: string; // YYYY-MM-DD override
+  excludeDates?: string[]; // Array of YYYY-MM-DD or MM-DD strings to preserve peak organic dates
   branch?: string;
 }
 

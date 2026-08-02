@@ -80,8 +80,8 @@ test('PatternEngine produces correct active and skipped day breakdown for 52 wee
   );
 });
 
-// 4. Intensity Level 4 Organic Spectrum Test (0 to 95 commits with rest days)
-test('PatternEngine handles Level 4 intensity (0 to 95 commits range with rest days)', () => {
+// 4. Intensity Level 4 Organic Spectrum Test (0 to 80 commits with rest days)
+test('PatternEngine handles Level 4 intensity (0 to 80 commits range with rest days)', () => {
   const engine = new PatternEngine({ weeks: 52, endDateStr: '2026-07-25', pattern: 'all-but-sat', intensity: 4 });
   const plan = engine.generatePlan();
 
@@ -90,7 +90,47 @@ test('PatternEngine handles Level 4 intensity (0 to 95 commits range with rest d
   assert.ok(plan.skippedDays >= 52, 'Level 4 should skip at least 52 Saturdays plus rest days');
 });
 
-// 5. Verifier Compliance Test on Empty/Valid History
+// 5. Peak Preservation Exclusion Algorithm Test
+test('DayOfWeekFilter strictly excludes May 11, May 27, and May 28 to preserve organic peaks', () => {
+  const engine = new PatternEngine({
+    startDateStr: '2026-05-01',
+    endDateStr: '2026-05-31',
+    pattern: 'all-but-sat',
+    intensity: 4,
+    excludeDates: ['05-11', '05-27', '05-28'],
+  });
+  const plan = engine.generatePlan();
+
+  const may11 = plan.decisions.find((d) => d.dateStr === '2026-05-11');
+  const may27 = plan.decisions.find((d) => d.dateStr === '2026-05-27');
+  const may28 = plan.decisions.find((d) => d.dateStr === '2026-05-28');
+
+  assert.ok(may11, 'May 11 decision should exist');
+  assert.strictEqual(may11?.shouldCommit, false, 'May 11 should be excluded');
+  assert.strictEqual(may11?.plannedCommits, 0, 'May 11 should have 0 planned commits');
+
+  assert.ok(may27, 'May 27 decision should exist');
+  assert.strictEqual(may27?.shouldCommit, false, 'May 27 should be excluded');
+  assert.strictEqual(may27?.plannedCommits, 0, 'May 27 should have 0 planned commits');
+
+  assert.ok(may28, 'May 28 decision should exist');
+  assert.strictEqual(may28?.shouldCommit, false, 'May 28 should be excluded');
+  assert.strictEqual(may28?.plannedCommits, 0, 'May 28 should have 0 planned commits');
+});
+
+// 6. Start Date Override Test (January Start)
+test('PatternEngine starting from January correctly aligns timeline', () => {
+  const engine = new PatternEngine({
+    startDateStr: '2026-01-01',
+    endDateStr: '2026-08-01',
+    pattern: 'all-but-sat',
+    intensity: 4,
+  });
+  const plan = engine.generatePlan();
+  assert.ok(plan.startDateStr.startsWith('2026-01-') || plan.startDateStr.startsWith('2025-12-'), 'Start date should align near January 1');
+});
+
+// 7. Verifier Compliance Test on Empty/Valid History
 test('Verifier correctly passes on non-Saturday commit check', () => {
   const result = Verifier.verify({ pattern: 'all-but-sat', maxCommits: 50 });
   assert.strictEqual(result.saturdayCommitsFound, 0, 'Current clean branch should have 0 Saturday commits');

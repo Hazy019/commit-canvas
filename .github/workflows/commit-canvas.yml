@@ -14,6 +14,14 @@ on:
         description: 'Number of weeks to process'
         required: false
         default: '52'
+      start_date:
+        description: 'Target start date (YYYY-MM-DD, e.g. 2026-01-01)'
+        required: false
+        default: ''
+      exclude_dates:
+        description: 'Comma-separated dates (MM-DD or YYYY-MM-DD) to exclude for peak preservation'
+        required: false
+        default: '05-11,05-27,05-28'
 
 jobs:
   generate-contribution-pattern:
@@ -45,17 +53,24 @@ jobs:
         run: |
           INTENSITY="${{ inputs.intensity }}"
           WEEKS="${{ inputs.weeks }}"
+          START_DATE="${{ inputs.start_date }}"
+          EXCLUDE_DATES="${{ inputs.exclude_dates }}"
           USER_EMAIL="${{ inputs.user_email }}"
           # Fallback for schedule events where inputs are empty
           INTENSITY="${INTENSITY:-2}"
           WEEKS="${WEEKS:-52}"
+          EXCLUDE_DATES="${EXCLUDE_DATES:-05-11,05-27,05-28}"
           if [ -z "$USER_EMAIL" ]; then
             USER_EMAIL="${{ secrets.GIT_USER_EMAIL }}"
           fi
           if [ -z "$USER_EMAIL" ]; then
             USER_EMAIL="${{ github.actor }}@users.noreply.github.com"
           fi
-          npx ts-node src/cli.ts sync --pattern=all-but-sat --intensity=$INTENSITY --weeks=$WEEKS --email="$USER_EMAIL"
+          EXTRA_ARGS=""
+          if [ -n "$START_DATE" ]; then
+            EXTRA_ARGS="--start-date=$START_DATE"
+          fi
+          npx ts-node src/cli.ts sync --pattern=all-but-sat --intensity=$INTENSITY --weeks=$WEEKS --exclude-dates="$EXCLUDE_DATES" $EXTRA_ARGS --email="$USER_EMAIL"
 
       - name: Verify Git History Rule Compliance
         id: verify

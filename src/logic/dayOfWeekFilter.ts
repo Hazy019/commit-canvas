@@ -9,10 +9,16 @@ import { createCommitTimestampUTC, formatDateUTC, getUTCDayOfWeek } from '../uti
 export class DayOfWeekFilter {
   private rule: PatternRuleConfig;
   private intensity: IntensityLevel;
+  private excludeDatesSet: Set<string>;
 
-  constructor(rule: PatternRuleConfig, intensity: IntensityLevel = 2) {
+  constructor(
+    rule: PatternRuleConfig,
+    intensity: IntensityLevel = 2,
+    excludeDates: string[] = []
+  ) {
     this.rule = rule;
     this.intensity = intensity;
+    this.excludeDatesSet = new Set(excludeDates.map((d) => d.trim()));
   }
 
   /**
@@ -22,7 +28,22 @@ export class DayOfWeekFilter {
   public evaluateDate(date: Date): CommitDecision {
     const dayOfWeek = getUTCDayOfWeek(date);
     const dayName = DAY_NAMES[dayOfWeek];
-    const dateStr = formatDateUTC(date);
+    const dateStr = formatDateUTC(date); // YYYY-MM-DD
+    const monthDayStr = dateStr.substring(5); // MM-DD
+
+    // EXPLICIT PEAK PRESERVATION DATE EXCLUSION CHECK
+    if (this.excludeDatesSet.has(dateStr) || this.excludeDatesSet.has(monthDayStr)) {
+      return {
+        dateStr,
+        date,
+        dayOfWeek,
+        dayName,
+        shouldCommit: false,
+        plannedCommits: 0,
+        commits: [],
+        skipReason: `Peak preservation: date '${dateStr}' is in the explicit exclusion list`,
+      };
+    }
 
     const shouldCommit = this.rule.shouldCommitDay(dayOfWeek);
 

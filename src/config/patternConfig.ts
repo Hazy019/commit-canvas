@@ -21,7 +21,7 @@ export const INTENSITY_COMMIT_RANGE_MAP: Record<IntensityLevel, { min: number; m
   1: { min: 2, max: 10 },
   2: { min: 5, max: 60 },  // Organic human spectrum: 5 to 60 commits
   3: { min: 15, max: 80 },
-  4: { min: 0, max: 95 },  // Organic spectrum with rest days: 0 to 95 commits
+  4: { min: 0, max: 80 },  // Organic spectrum with rest days: 0 to 80 commits (preserving 85-commit organic peak)
 };
 
 export function getSeededRandomCommitCount(dateStr: string, intensity: IntensityLevel): number {
@@ -51,7 +51,7 @@ export function getSeededRandomCommitCount(dateStr: string, intensity: Intensity
   }
 
   if (intensity === 4) {
-    // 5-tier organic distribution for Level 4 (0-95 commits) including zero-commit rest days
+    // 5-tier organic distribution for Level 4 (0-80 commits) including zero-commit rest days (capped at 80 to preserve 85-commit peak)
     const roll = positiveHash % 100;
     if (roll < 15) {
       // Tier 0 (Rest Day / Empty): 0 commits (~15% of days)
@@ -66,8 +66,8 @@ export function getSeededRandomCommitCount(dateStr: string, intensity: Intensity
       // Tier 3 (Dark Green): 46 - 70 commits (~15% of days)
       return 46 + (positiveHash % 25);
     } else {
-      // Tier 4 (Peak Heavy Sprint): 71 - 95 commits (~10% of days)
-      return 71 + (positiveHash % 25);
+      // Tier 4 (Peak Heavy Sprint): 71 - 80 commits (~10% of days, strictly below 85 peak)
+      return 71 + (positiveHash % 10);
     }
   }
 
