@@ -2,28 +2,32 @@ import { addDaysUTC, formatDateUTC, getUTCDayOfWeek, parseDateUTC } from '../uti
 
 export interface DateIteratorOptions {
   weeks?: number; // Default 52
+  startDateStr?: string; // Optional start date override (e.g. 2026-01-01)
   endDateStr?: string; // Default today UTC
 }
 
 /**
  * Procedural Date Iterator that generates a continuous daily timeline
- * aligned to a Sunday-Saturday 7-row grid over the specified number of weeks.
+ * aligned to a Sunday-Saturday 7-row grid over the specified date range.
  */
 export class DateIterator implements Iterable<Date> {
   private startDate: Date;
   private endDate: Date;
 
   constructor(options: DateIteratorOptions = {}) {
-    const totalWeeks = options.weeks ?? 52;
     const end = options.endDateStr ? parseDateUTC(options.endDateStr) : new Date();
 
     // Normalize endDate to UTC 12:00:00
     const endDateUTC = parseDateUTC(formatDateUTC(end));
 
-    // Align start date to a Sunday totalWeeks ago
-    // Total days in N weeks = N * 7
-    const daysBack = (totalWeeks * 7) - 1;
-    let startCandidate = addDaysUTC(endDateUTC, -daysBack);
+    let startCandidate: Date;
+    if (options.startDateStr) {
+      startCandidate = parseDateUTC(options.startDateStr);
+    } else {
+      const totalWeeks = options.weeks ?? 52;
+      const daysBack = (totalWeeks * 7) - 1;
+      startCandidate = addDaysUTC(endDateUTC, -daysBack);
+    }
 
     // Adjust start candidate to preceding Sunday if needed for grid alignment
     const dayOfWeek = getUTCDayOfWeek(startCandidate);

@@ -7,6 +7,7 @@ import { DayOfWeekFilter } from './dayOfWeekFilter';
 export interface PatternEngineOptions extends DateIteratorOptions {
   pattern?: PatternName;
   intensity?: IntensityLevel;
+  excludeDates?: string[];
 }
 
 export interface PatternPlanSummary {
@@ -33,7 +34,7 @@ export class PatternEngine {
     const rule = getPatternRule(this.patternName);
 
     this.iterator = new DateIterator(options);
-    this.filter = new DayOfWeekFilter(rule, this.intensity);
+    this.filter = new DayOfWeekFilter(rule, this.intensity, options.excludeDates);
   }
 
   /**
