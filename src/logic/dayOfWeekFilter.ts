@@ -42,6 +42,20 @@ export class DayOfWeekFilter {
 
     // GENERATE COMMITS PATH
     const commitCount = getSeededRandomCommitCount(dateStr, this.intensity);
+
+    if (commitCount === 0) {
+      return {
+        dateStr,
+        date,
+        dayOfWeek,
+        dayName,
+        shouldCommit: false,
+        plannedCommits: 0,
+        commits: [],
+        skipReason: `Organic rest day (0 commits assigned)`,
+      };
+    }
+
     const commits: CommitInfo[] = [];
 
     for (let i = 1; i <= commitCount; i++) {
