@@ -11,7 +11,7 @@ on:
         required: false
         default: '3'
       weeks:
-        description: 'Number of weeks to process'
+        description: 'Number of weeks to process (1 for daily/current week, 52 for full year)'
         required: false
         default: '1'
       start_date:
@@ -56,7 +56,7 @@ jobs:
           START_DATE="${{ inputs.start_date }}"
           EXCLUDE_DATES="${{ inputs.exclude_dates }}"
           USER_EMAIL="${{ inputs.user_email }}"
-          # Fallback for schedule events where inputs are empty
+          # Fallback for daily schedule events where inputs are empty
           INTENSITY="${INTENSITY:-3}"
           WEEKS="${WEEKS:-1}"
           EXCLUDE_DATES="${EXCLUDE_DATES:-05-11,05-27,05-28}"
@@ -86,13 +86,14 @@ jobs:
           echo "Healing complete. Re-verifying..."
           npx ts-node src/cli.ts verify --pattern=all-but-sat
 
-      - name: Push Updated Contribution History (with Force-With-Lease Fallback)
+      - name: Push Daily Contribution (Standard Safe Push)
         run: |
           for i in 1 2 3; do
-            git push --force-with-lease origin HEAD:${{ github.ref_name }} && break || {
+            git push origin HEAD:${{ github.ref_name }} && break || {
               echo "Push failed. Retrying attempt $i of 3 in $(( $i * 3 ))s..."
               sleep $(( $i * 3 ))
               git fetch origin ${{ github.ref_name }}
+              git rebase origin/${{ github.ref_name }}
             }
           done
         env:
