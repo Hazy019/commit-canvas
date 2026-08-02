@@ -18,7 +18,7 @@ export const INTENSITY_COMMIT_MAP: Record<IntensityLevel, number> = {
 };
 
 export const INTENSITY_COMMIT_RANGE_MAP: Record<IntensityLevel, { min: number; max: number }> = {
-  1: { min: 2, max: 10 },
+  1: { min: 0, max: 10 },  // Organic light spectrum with rest days: 0 to 10 commits (~35% rest days)
   2: { min: 5, max: 60 },  // Organic human spectrum: 5 to 60 commits
   3: { min: 0, max: 55 },  // Organic moderate spectrum with rest days: 0 to 55 commits
   4: { min: 0, max: 80 },  // Organic spectrum with rest days: 0 to 80 commits (preserving 85-commit organic peak)
@@ -31,6 +31,24 @@ export function getSeededRandomCommitCount(dateStr: string, intensity: Intensity
     hash |= 0;
   }
   const positiveHash = Math.abs(hash);
+
+  if (intensity === 1) {
+    // 4-tier organic distribution for Level 1 (0-10 commits) with high rest day probability (~35%)
+    const roll = positiveHash % 100;
+    if (roll < 35) {
+      // Tier 0 (Rest Day / Empty): 0 commits (~35% of days)
+      return 0;
+    } else if (roll < 75) {
+      // Tier 1 (Light Green / 1-4 commits): (~40% of days)
+      return 1 + (positiveHash % 4);
+    } else if (roll < 90) {
+      // Tier 2 (Medium Green / 5-7 commits): (~15% of days)
+      return 5 + (positiveHash % 3);
+    } else {
+      // Tier 3 (Peak Light / 8-10 commits): (~10% of days)
+      return 8 + (positiveHash % 3);
+    }
+  }
 
   if (intensity === 2) {
     // 4-tier organic distribution for Level 2 (5-60 commits) to populate all 4 green shades on GitHub
@@ -92,9 +110,7 @@ export function getSeededRandomCommitCount(dateStr: string, intensity: Intensity
     }
   }
 
-  const range = INTENSITY_COMMIT_RANGE_MAP[intensity] || { min: 5, max: 60 };
-  const diff = range.max - range.min + 1;
-  return range.min + (positiveHash % diff);
+  return 5;
 }
 
 export const PATTERN_RULES: Record<PatternName, PatternRuleConfig> = {
