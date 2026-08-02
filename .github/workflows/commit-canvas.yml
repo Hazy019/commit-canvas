@@ -13,7 +13,7 @@ on:
       weeks:
         description: 'Number of weeks to process'
         required: false
-        default: '52'
+        default: '1'
       start_date:
         description: 'Target start date (YYYY-MM-DD, e.g. 2026-01-01)'
         required: false
@@ -57,8 +57,8 @@ jobs:
           EXCLUDE_DATES="${{ inputs.exclude_dates }}"
           USER_EMAIL="${{ inputs.user_email }}"
           # Fallback for schedule events where inputs are empty
-          INTENSITY="${INTENSITY:-2}"
-          WEEKS="${WEEKS:-52}"
+          INTENSITY="${INTENSITY:-3}"
+          WEEKS="${WEEKS:-1}"
           EXCLUDE_DATES="${EXCLUDE_DATES:-05-11,05-27,05-28}"
           if [ -z "$USER_EMAIL" ]; then
             USER_EMAIL="${{ secrets.GIT_USER_EMAIL }}"
