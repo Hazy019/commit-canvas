@@ -69,16 +69,16 @@ export function getSeededRandomCommitCount(dateStr: string, intensity: Intensity
   }
 
   if (intensity === 3) {
-    // 5-tier organic distribution for Level 3 (0-55 commits) including zero-commit rest days
+    // 5-tier organic distribution for Level 3 (0-55 commits) including zero-commit rest days (~25% rest days)
     const roll = positiveHash % 100;
-    if (roll < 20) {
-      // Tier 0 (Rest Day / Empty): 0 commits (~20% of days)
+    if (roll < 25) {
+      // Tier 0 (Rest Day / Empty): 0 commits (~25% of days)
       return 0;
-    } else if (roll < 50) {
+    } else if (roll < 55) {
       // Tier 1 (Light Green): 1 - 12 commits (~30% of days)
       return 1 + (positiveHash % 12);
     } else if (roll < 80) {
-      // Tier 2 (Medium Green): 13 - 28 commits (~30% of days)
+      // Tier 2 (Medium Green): 13 - 28 commits (~25% of days)
       return 13 + (positiveHash % 16);
     } else if (roll < 92) {
       // Tier 3 (Dark Green): 29 - 42 commits (~12% of days)
