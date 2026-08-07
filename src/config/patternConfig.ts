@@ -24,35 +24,62 @@ export const INTENSITY_COMMIT_RANGE_MAP: Record<IntensityLevel, { min: number; m
   4: { min: 0, max: 80 },  // Organic peak spectrum with rest days: 0 to 80 commits (~25% rest days)
 };
 
-export function getSeededRandomCommitCount(dateStr: string, intensity: IntensityLevel): number {
-  let hash = 0;
+/**
+ * Two-pass avalanche hash seeder.
+ *
+ * Pass 1 (FNV-1a): produces a uniform `roll` value (0-99) for the tier gate.
+ *   FNV-1a has far better avalanche properties than djb2 for sequential
+ *   date strings, preventing clustering in the rest-day bucket.
+ *
+ * Pass 2 (Mulberry32-style mix): produces a fully independent `count` seed
+ *   so the "how many commits" decision is statistically decoupled from the
+ *   "should we commit" gate.
+ */
+function seededHash(dateStr: string): { roll: number; count: number } {
+  // Pass 1: FNV-1a over the date string
+  let h = 2166136261; // FNV-1a 32-bit offset basis
   for (let i = 0; i < dateStr.length; i++) {
-    hash = (hash << 5) - hash + dateStr.charCodeAt(i);
-    hash |= 0;
+    h ^= dateStr.charCodeAt(i);
+    h = Math.imul(h, 16777619); // FNV prime
+    h |= 0;
   }
-  const positiveHash = Math.abs(hash);
+  const seed1 = Math.abs(h);
+
+  // Pass 2: Mulberry32-style finalizer for count independence
+  let h2 = seed1 ^ 0xdeadbeef;
+  h2 = Math.imul(h2 ^ (h2 >>> 16), 0x45d9f3b);
+  h2 = Math.imul(h2 ^ (h2 >>> 16), 0x45d9f3b);
+  h2 = h2 ^ (h2 >>> 16);
+  const seed2 = Math.abs(h2);
+
+  return {
+    roll: seed1 % 100, // uniform 0-99 for tier gate
+    count: seed2,      // independent seed for commit count offset
+  };
+}
+
+export function getSeededRandomCommitCount(dateStr: string, intensity: IntensityLevel): number {
+  const { roll, count } = seededHash(dateStr);
 
   if (intensity === 1) {
     // Level 1: 0-10 commits with high rest day probability (~35%)
-    const roll = positiveHash % 100;
     if (roll < 35) {
       // Tier 0 (Rest Day / Empty): 0 commits (~35% of days)
       return 0;
     } else if (roll < 75) {
       // Tier 1 (Light Green / 1-4 commits): (~40% of days)
-      return 1 + (positiveHash % 4);
+      return 1 + (count % 4);
     } else if (roll < 90) {
       // Tier 2 (Medium Green / 5-7 commits): (~15% of days)
-      return 5 + (positiveHash % 3);
+      return 5 + (count % 3);
     } else {
       // Tier 3 (Peak Light / 8-10 commits): (~10% of days)
-      return 8 + (positiveHash % 3);
+      return 8 + (count % 3);
     }
   }
 
   if (intensity === 2) {
     // Level 2: 0-3 commits with high rest day probability (~35%)
-    const roll = positiveHash % 100;
     if (roll < 35) {
       // Tier 0 (Rest Day / Empty): 0 commits (~35% of days)
       return 0;
@@ -70,43 +97,41 @@ export function getSeededRandomCommitCount(dateStr: string, intensity: Intensity
 
   if (intensity === 3) {
     // Level 3: 0-55 commits with high rest day probability (~30%)
-    const roll = positiveHash % 100;
     if (roll < 30) {
       // Tier 0 (Rest Day / Empty): 0 commits (~30% of days)
       return 0;
     } else if (roll < 60) {
       // Tier 1 (Light Green): 1 - 12 commits (~30% of days)
-      return 1 + (positiveHash % 12);
+      return 1 + (count % 12);
     } else if (roll < 85) {
       // Tier 2 (Medium Green): 13 - 28 commits (~25% of days)
-      return 13 + (positiveHash % 16);
+      return 13 + (count % 16);
     } else if (roll < 93) {
       // Tier 3 (Dark Green): 29 - 42 commits (~8% of days)
-      return 29 + (positiveHash % 14);
+      return 29 + (count % 14);
     } else {
       // Tier 4 (Peak Moderate Sprint): 43 - 55 commits (~7% of days)
-      return 43 + (positiveHash % 13);
+      return 43 + (count % 13);
     }
   }
 
   if (intensity === 4) {
     // Level 4: 0-80 commits with high rest day probability (~25%) (capped at 80 to preserve 85-commit peak)
-    const roll = positiveHash % 100;
     if (roll < 25) {
       // Tier 0 (Rest Day / Empty): 0 commits (~25% of days)
       return 0;
     } else if (roll < 55) {
       // Tier 1 (Light Green): 1 - 15 commits (~30% of days)
-      return 1 + (positiveHash % 15);
+      return 1 + (count % 15);
     } else if (roll < 80) {
       // Tier 2 (Medium Green): 16 - 45 commits (~25% of days)
-      return 16 + (positiveHash % 30);
+      return 16 + (count % 30);
     } else if (roll < 92) {
       // Tier 3 (Dark Green): 46 - 70 commits (~12% of days)
-      return 46 + (positiveHash % 25);
+      return 46 + (count % 25);
     } else {
       // Tier 4 (Peak Heavy Sprint): 71 - 80 commits (~8% of days)
-      return 71 + (positiveHash % 10);
+      return 71 + (count % 10);
     }
   }
 
