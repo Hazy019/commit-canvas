@@ -24,7 +24,11 @@ on:
         required: false
         default: '1'
       start_date:
-        description: 'Target start date (YYYY-MM-DD, e.g. 2026-01-01)'
+        description: 'Target start date (YYYY-MM-DD, e.g. 2026-03-01)'
+        required: false
+        default: ''
+      end_date:
+        description: 'Target end date (YYYY-MM-DD, e.g. 2026-06-30)'
         required: false
         default: ''
       exclude_dates:
@@ -70,6 +74,7 @@ jobs:
           INTENSITY="${{ inputs.intensity }}"
           WEEKS="${{ inputs.weeks }}"
           START_DATE="${{ inputs.start_date }}"
+          END_DATE="${{ inputs.end_date }}"
           EXCLUDE_DATES="${{ inputs.exclude_dates }}"
           USER_EMAIL="${{ inputs.user_email }}"
           FORCE="${{ inputs.force }}"
@@ -86,6 +91,9 @@ jobs:
           EXTRA_ARGS=""
           if [ -n "$START_DATE" ]; then
             EXTRA_ARGS="$EXTRA_ARGS --start-date=$START_DATE"
+          fi
+          if [ -n "$END_DATE" ]; then
+            EXTRA_ARGS="$EXTRA_ARGS --end-date=$END_DATE"
           fi
           if [ "$FORCE" = "true" ]; then
             EXTRA_ARGS="$EXTRA_ARGS --force"
