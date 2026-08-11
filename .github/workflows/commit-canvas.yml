@@ -6,8 +6,17 @@ on:
     - cron: '0 0 * * *'
   workflow_dispatch:
     inputs:
+      user_email:
+        description: 'Target author email for contribution attribution (defaults to secrets.GIT_USER_EMAIL or actor noreply)'
+        required: false
+        default: ''
+      force:
+        description: 'Force re-committing pattern (bypasses idempotency check)'
+        type: boolean
+        required: false
+        default: false
       intensity:
-        description: 'Intensity Level (1: 0-10 light, 2: 0-3 minimal, 3: 0-55 moderate, 4: 0-80 peak - all with high rest days)'
+        description: 'Intensity Level (1: 0-10 light, 2: 0-3 minimal, 3: 0-55 moderate, 4: 0-80 peak)'
         required: false
         default: '3'
       weeks:
@@ -46,8 +55,15 @@ jobs:
 
       - name: Configure Git Credentials
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
+          USER_EMAIL="${{ inputs.user_email }}"
+          if [ -z "$USER_EMAIL" ]; then
+            USER_EMAIL="${{ secrets.GIT_USER_EMAIL }}"
+          fi
+          if [ -z "$USER_EMAIL" ]; then
+            USER_EMAIL="${{ github.actor }}@users.noreply.github.com"
+          fi
+          git config user.name "${{ github.actor }}"
+          git config user.email "$USER_EMAIL"
 
       - name: "Execute Commit Canvas Engine (Pattern: all-but-sat)"
         run: |
@@ -56,6 +72,7 @@ jobs:
           START_DATE="${{ inputs.start_date }}"
           EXCLUDE_DATES="${{ inputs.exclude_dates }}"
           USER_EMAIL="${{ inputs.user_email }}"
+          FORCE="${{ inputs.force }}"
           # Fallback for schedule events (daily cron) where inputs are empty
           INTENSITY="${INTENSITY:-3}"
           WEEKS="${WEEKS:-1}"
@@ -68,9 +85,12 @@ jobs:
           fi
           EXTRA_ARGS=""
           if [ -n "$START_DATE" ]; then
-            EXTRA_ARGS="--start-date=$START_DATE"
+            EXTRA_ARGS="$EXTRA_ARGS --start-date=$START_DATE"
           fi
-          npx ts-node src/cli.ts sync --pattern=all-but-sat --intensity=$INTENSITY --weeks=$WEEKS --exclude-dates="$EXCLUDE_DATES" $EXTRA_ARGS --email="$USER_EMAIL"
+          if [ "$FORCE" = "true" ]; then
+            EXTRA_ARGS="$EXTRA_ARGS --force"
+          fi
+          npx ts-node src/cli.ts sync --pattern=all-but-sat --intensity=$INTENSITY --weeks=$WEEKS --exclude-dates="$EXCLUDE_DATES" --email="$USER_EMAIL" $EXTRA_ARGS
 
       - name: Verify Git History Rule Compliance
         id: verify

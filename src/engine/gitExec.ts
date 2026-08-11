@@ -4,6 +4,7 @@ export interface GitCommitOptions {
   message: string;
   timestampIso: string;
   cwd?: string;
+  email?: string;
 }
 
 export class GitExec {
@@ -21,14 +22,18 @@ export class GitExec {
   }
 
   /**
-   * Creates an empty commit with explicit GIT_AUTHOR_DATE and GIT_COMMITTER_DATE overrides.
+   * Creates an empty commit with explicit GIT_AUTHOR_DATE, GIT_COMMITTER_DATE, and email overrides.
    */
   public static createEmptyCommit(options: GitCommitOptions): string {
-    const { message, timestampIso, cwd } = options;
-    const env = {
+    const { message, timestampIso, cwd, email } = options;
+    const env: Record<string, string> = {
       GIT_AUTHOR_DATE: timestampIso,
       GIT_COMMITTER_DATE: timestampIso,
     };
+    if (email) {
+      env.GIT_AUTHOR_EMAIL = email;
+      env.GIT_COMMITTER_EMAIL = email;
+    }
     const safeMessage = message.replace(/"/g, '\\"');
     const cmd = `git commit --allow-empty -m "${safeMessage}"`;
     return GitExec.run(cmd, env, cwd);
@@ -37,7 +42,7 @@ export class GitExec {
   /**
    * Creates empty commits cleanly and rapidly in pure Node to avoid shell script cross-platform bugs.
    */
-  public static createEmptyCommitsBatch(commits: GitCommitOptions[], cwd: string = process.cwd()): void {
+  public static createEmptyCommitsBatch(commits: GitCommitOptions[], authorEmail?: string, cwd: string = process.cwd()): void {
     if (commits.length === 0) return;
 
     // Temporarily disable auto-GC during batch creation to avoid background process locks
@@ -48,11 +53,16 @@ export class GitExec {
     }
 
     for (const commit of commits) {
-      const { message, timestampIso } = commit;
-      const env = {
+      const { message, timestampIso, email } = commit;
+      const env: Record<string, string> = {
         GIT_AUTHOR_DATE: timestampIso,
         GIT_COMMITTER_DATE: timestampIso,
       };
+      const targetEmail = authorEmail || email;
+      if (targetEmail) {
+        env.GIT_AUTHOR_EMAIL = targetEmail;
+        env.GIT_COMMITTER_EMAIL = targetEmail;
+      }
       const safeMessage = message.replace(/"/g, '\\"');
       // Use --quiet to keep stdio buffer light and fast
       const cmd = `git commit --quiet --allow-empty -m "${safeMessage}"`;

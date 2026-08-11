@@ -64,7 +64,7 @@ export class CommitRunner {
 
     if (!this.options.dryRun && commitsToCreate.length > 0) {
       Logger.info(`Executing batched git commits (${commitsToCreate.length} commits)...`);
-      GitExec.createEmptyCommitsBatch(commitsToCreate);
+      GitExec.createEmptyCommitsBatch(commitsToCreate, this.options.email);
     }
 
     Logger.success(`Execution complete! Commits Created: ${executedCount}, Days Skipped: ${summary.skippedDays}`);

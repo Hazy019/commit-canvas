@@ -18,10 +18,10 @@ export const INTENSITY_COMMIT_MAP: Record<IntensityLevel, number> = {
 };
 
 export const INTENSITY_COMMIT_RANGE_MAP: Record<IntensityLevel, { min: number; max: number }> = {
-  1: { min: 0, max: 10 },  // Organic light spectrum with rest days: 0 to 10 commits (~35% rest days)
-  2: { min: 0, max: 3 },   // Minimal organic spectrum with rest days: 0 to 3 commits (~35% rest days)
-  3: { min: 0, max: 55 },  // Organic moderate spectrum with rest days: 0 to 55 commits (~30% rest days)
-  4: { min: 0, max: 80 },  // Organic peak spectrum with rest days: 0 to 80 commits (~25% rest days)
+  1: { min: 0, max: 10 },  // Organic light spectrum: 0 to 10 commits (~15% rest days)
+  2: { min: 0, max: 3 },   // Minimal organic spectrum: 0 to 3 commits (~15% rest days)
+  3: { min: 0, max: 55 },  // Organic moderate spectrum: 0 to 55 commits (~10% rest days)
+  4: { min: 0, max: 80 },  // Organic peak spectrum: 0 to 80 commits (~5% rest days)
 };
 
 /**
@@ -62,75 +62,75 @@ export function getSeededRandomCommitCount(dateStr: string, intensity: Intensity
   const { roll, count } = seededHash(dateStr);
 
   if (intensity === 1) {
-    // Level 1: 0-10 commits with high rest day probability (~35%)
-    if (roll < 35) {
-      // Tier 0 (Rest Day / Empty): 0 commits (~35% of days)
+    // Level 1: 0-10 commits with low rest day probability (~15%)
+    if (roll < 15) {
+      // Tier 0 (Rest Day / Empty): 0 commits (~15% of days)
       return 0;
-    } else if (roll < 75) {
-      // Tier 1 (Light Green / 1-4 commits): (~40% of days)
+    } else if (roll < 65) {
+      // Tier 1 (Light Green / 1-4 commits): (~50% of days)
       return 1 + (count % 4);
-    } else if (roll < 90) {
-      // Tier 2 (Medium Green / 5-7 commits): (~15% of days)
+    } else if (roll < 85) {
+      // Tier 2 (Medium Green / 5-7 commits): (~20% of days)
       return 5 + (count % 3);
     } else {
-      // Tier 3 (Peak Light / 8-10 commits): (~10% of days)
+      // Tier 3 (Peak Light / 8-10 commits): (~15% of days)
       return 8 + (count % 3);
     }
   }
 
   if (intensity === 2) {
-    // Level 2: 0-3 commits with high rest day probability (~35%)
-    if (roll < 35) {
-      // Tier 0 (Rest Day / Empty): 0 commits (~35% of days)
+    // Level 2: 0-3 commits with low rest day probability (~15%)
+    if (roll < 15) {
+      // Tier 0 (Rest Day / Empty): 0 commits (~15% of days)
       return 0;
-    } else if (roll < 65) {
-      // Tier 1 (1 commit): (~30% of days)
+    } else if (roll < 55) {
+      // Tier 1 (1 commit): (~40% of days)
       return 1;
-    } else if (roll < 85) {
-      // Tier 2 (2 commits): (~20% of days)
+    } else if (roll < 80) {
+      // Tier 2 (2 commits): (~25% of days)
       return 2;
     } else {
-      // Tier 3 (3 commits): (~15% of days)
+      // Tier 3 (3 commits): (~20% of days)
       return 3;
     }
   }
 
   if (intensity === 3) {
-    // Level 3: 0-55 commits with high rest day probability (~30%)
-    if (roll < 30) {
-      // Tier 0 (Rest Day / Empty): 0 commits (~30% of days)
+    // Level 3: 0-55 commits with low rest day probability (~10%)
+    if (roll < 10) {
+      // Tier 0 (Rest Day / Empty): 0 commits (~10% of days)
       return 0;
-    } else if (roll < 60) {
-      // Tier 1 (Light Green): 1 - 12 commits (~30% of days)
+    } else if (roll < 50) {
+      // Tier 1 (Light Green): 1 - 12 commits (~40% of days)
       return 1 + (count % 12);
-    } else if (roll < 85) {
-      // Tier 2 (Medium Green): 13 - 28 commits (~25% of days)
+    } else if (roll < 80) {
+      // Tier 2 (Medium Green): 13 - 28 commits (~30% of days)
       return 13 + (count % 16);
-    } else if (roll < 93) {
-      // Tier 3 (Dark Green): 29 - 42 commits (~8% of days)
+    } else if (roll < 92) {
+      // Tier 3 (Dark Green): 29 - 42 commits (~12% of days)
       return 29 + (count % 14);
     } else {
-      // Tier 4 (Peak Moderate Sprint): 43 - 55 commits (~7% of days)
+      // Tier 4 (Peak Moderate Sprint): 43 - 55 commits (~8% of days)
       return 43 + (count % 13);
     }
   }
 
   if (intensity === 4) {
-    // Level 4: 0-80 commits with high rest day probability (~25%) (capped at 80 to preserve 85-commit peak)
-    if (roll < 25) {
-      // Tier 0 (Rest Day / Empty): 0 commits (~25% of days)
+    // Level 4: 0-80 commits with minimal rest day probability (~5%)
+    if (roll < 5) {
+      // Tier 0 (Rest Day / Empty): 0 commits (~5% of days)
       return 0;
-    } else if (roll < 55) {
-      // Tier 1 (Light Green): 1 - 15 commits (~30% of days)
+    } else if (roll < 45) {
+      // Tier 1 (Light Green): 1 - 15 commits (~40% of days)
       return 1 + (count % 15);
-    } else if (roll < 80) {
-      // Tier 2 (Medium Green): 16 - 45 commits (~25% of days)
+    } else if (roll < 75) {
+      // Tier 2 (Medium Green): 16 - 45 commits (~30% of days)
       return 16 + (count % 30);
-    } else if (roll < 92) {
-      // Tier 3 (Dark Green): 46 - 70 commits (~12% of days)
+    } else if (roll < 90) {
+      // Tier 3 (Dark Green): 46 - 70 commits (~15% of days)
       return 46 + (count % 25);
     } else {
-      // Tier 4 (Peak Heavy Sprint): 71 - 80 commits (~8% of days)
+      // Tier 4 (Peak Heavy Sprint): 71 - 80 commits (~10% of days)
       return 71 + (count % 10);
     }
   }
