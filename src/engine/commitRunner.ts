@@ -9,6 +9,13 @@ export interface CommitRunnerOptions {
   force?: boolean;
 }
 
+export interface CommitRunnerResult {
+  executed: number;
+  skipped: number;
+  total: number;
+  success: boolean;
+}
+
 export class CommitRunner {
   private options: CommitRunnerOptions;
 
@@ -17,14 +24,23 @@ export class CommitRunner {
   }
 
   /**
-   * Runs the procedural pattern plan.
+   * Runs the procedural pattern plan with complete error isolation, retry, and recovery mechanics.
    */
-  public run(summary: PatternPlanSummary): { executed: number; skipped: number; total: number } {
-    Logger.info(`Starting Commit Execution Engine (Pattern: '${summary.patternName}', Dry Run: ${Boolean(this.options.dryRun)})`);
+  public run(summary: PatternPlanSummary): CommitRunnerResult {
+    Logger.info(
+      `Starting Commit Execution Engine (Pattern: '${summary.patternName}', Dry Run: ${Boolean(
+        this.options.dryRun
+      )})`
+    );
 
     let existingSignatures = new Set<string>();
-    if (!this.options.dryRun && !this.options.force) {
-      existingSignatures = GitExec.getExistingSignatures(this.options.email);
+    try {
+      if (!this.options.dryRun && !this.options.force) {
+        existingSignatures = GitExec.getExistingSignatures(this.options.email);
+      }
+    } catch (err: any) {
+      Logger.warn(`Could not read existing signatures (${err.message}). Proceeding safely.`);
+      existingSignatures = new Set<string>();
     }
 
     let executedCount = 0;
@@ -50,7 +66,7 @@ export class CommitRunner {
         }
         commitsToCreate.push({
           message: commit.signature,
-          timestampIso: commit.timestampIso
+          timestampIso: commit.timestampIso,
         });
         existingSignatures.add(commit.signature);
         dayCommitsCreated++;
@@ -64,7 +80,20 @@ export class CommitRunner {
 
     if (!this.options.dryRun && commitsToCreate.length > 0) {
       Logger.info(`Executing batched git commits (${commitsToCreate.length} commits)...`);
-      GitExec.createEmptyCommitsBatch(commitsToCreate, this.options.email);
+      try {
+        GitExec.createEmptyCommitsBatch(commitsToCreate, this.options.email);
+      } catch (batchErr: any) {
+        Logger.error(`Batch commit failed: ${batchErr.message}. Attempting self-recovery...`);
+        GitExec.cleanupStaleLocks();
+        try {
+          // Retry batch execution once after lock cleanup
+          GitExec.createEmptyCommitsBatch(commitsToCreate, this.options.email);
+          Logger.success('Batch commit recovered and executed successfully.');
+        } catch (retryErr: any) {
+          Logger.error(`Batch commit fatal failure after recovery attempt: ${retryErr.message}`);
+          throw retryErr;
+        }
+      }
     }
 
     Logger.success(`Execution complete! Commits Created: ${executedCount}, Days Skipped: ${summary.skippedDays}`);
@@ -72,6 +101,7 @@ export class CommitRunner {
       executed: executedCount,
       skipped: summary.skippedDays,
       total: summary.totalCommitsPlanned,
+      success: true,
     };
   }
 }

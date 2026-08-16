@@ -18,6 +18,11 @@ export interface PatternRuleConfig {
   shouldCommitDay: (dayOfWeek: number) => boolean;
 }
 
+export interface MarkovStateConfig {
+  daysSinceLastCommit: number; // 0 = committed today, 1 = committed yesterday, etc.
+  maxConsecutiveRestDays: number; // Hard cap on rest days (default 3)
+}
+
 export interface CommitInfo {
   dateStr: string; // YYYY-MM-DD
   timestampIso: string; // ISO 8601 UTC timestamp
@@ -34,6 +39,7 @@ export interface CommitDecision {
   shouldCommit: boolean;
   plannedCommits: number;
   commits: CommitInfo[];
+  daysSinceLastCommit?: number;
   skipReason?: string;
 }
 
@@ -44,6 +50,7 @@ export interface PreviewOptions {
   startDate?: string; // YYYY-MM-DD override (e.g. 2026-01-01)
   endDate?: string; // YYYY-MM-DD override
   excludeDates?: string[]; // Array of YYYY-MM-DD or MM-DD strings to preserve peak organic dates
+  useMarkov?: boolean;
 }
 
 export interface SyncOptions {
@@ -55,6 +62,9 @@ export interface SyncOptions {
   endDate?: string; // YYYY-MM-DD override
   excludeDates?: string[]; // Array of YYYY-MM-DD or MM-DD strings to preserve peak organic dates
   branch?: string;
+  email?: string;
+  force?: boolean;
+  useMarkov?: boolean;
 }
 
 export interface VerifyOptions {

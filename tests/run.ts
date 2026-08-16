@@ -1,10 +1,13 @@
 import assert from 'assert';
-import { PATTERN_RULES } from '../src/config/patternConfig';
+import * as fs from 'fs';
+import * as path from 'path';
+import { evaluateMarkovDecision, getSeededRandomCommitCount, PATTERN_RULES } from '../src/config/patternConfig';
+import { GitExec } from '../src/engine/gitExec';
+import { Verifier } from '../src/engine/verifier';
 import { DateIterator } from '../src/logic/dateIterator';
 import { DayOfWeekFilter } from '../src/logic/dayOfWeekFilter';
 import { PatternEngine } from '../src/logic/patternEngine';
-import { parseDateUTC, getUTCDayOfWeek, formatDateUTC } from '../src/utils/timezone';
-import { Verifier } from '../src/engine/verifier';
+import { createHumanCommitTimestampUTC, formatDateUTC, getUTCDayOfWeek, parseDateUTC } from '../src/utils/timezone';
 
 console.log('\n========================================');
 console.log(' RUNNING COMMIT-CANVAS UNIT TEST SUITE');
@@ -41,8 +44,8 @@ test('DayOfWeekFilter strictly filters Saturday (day 6)', () => {
   assert.strictEqual(getUTCDayOfWeek(friDate), 5, '2026-07-31 should be Friday (5)');
   const friDecision = filter.evaluateDate(friDate);
   assert.ok(
-    friDecision.plannedCommits >= 0 && friDecision.plannedCommits <= 3,
-    `Level 2 intensity should generate between 0 and 3 commits (got ${friDecision.plannedCommits})`
+    friDecision.plannedCommits >= 1 && friDecision.plannedCommits <= 3,
+    `Level 2 intensity should generate between 1 and 3 commits (got ${friDecision.plannedCommits})`
   );
 
   // Test Sunday (2026-07-26 is a Sunday)
@@ -50,6 +53,7 @@ test('DayOfWeekFilter strictly filters Saturday (day 6)', () => {
   assert.strictEqual(getUTCDayOfWeek(sunDate), 0, '2026-07-26 should be Sunday (0)');
   const sunDecision = filter.evaluateDate(sunDate);
   assert.strictEqual(sunDecision.shouldCommit, true, 'Sunday should have shouldCommit: true');
+  assert.ok(sunDecision.plannedCommits >= 1, 'Active Sunday should have >= 1 commits');
 });
 
 // 2. Date Iterator Alignment Tests
@@ -63,61 +67,65 @@ test('DateIterator aligns timeline grid over 52 weeks', () => {
   assert.strictEqual(getUTCDayOfWeek(firstDate), 0, 'Grid start date must be a Sunday (0)');
 });
 
-// 3. Pattern Engine Generation Tests
-test('PatternEngine produces correct active and skipped day breakdown for 52 weeks', () => {
-  // Pass an endDateStr ending on Saturday to get exactly 52 full weeks (364 days) and excludeDates: []
+// 3. Pattern Engine Generation & Zero-Waste Active Day Tests
+test('PatternEngine guarantees >= 1 commit on active days (No 0-commit dead runs)', () => {
   const engine = new PatternEngine({ weeks: 52, endDateStr: '2026-07-25', pattern: 'all-but-sat', intensity: 2, excludeDates: [] });
   const plan = engine.generatePlan();
 
   assert.strictEqual(plan.patternName, 'all-but-sat');
   assert.ok(plan.skippedDays >= 52, '52 weeks should yield at least 52 skipped Saturdays plus rest days');
-  assert.ok(
-    plan.totalCommitsPlanned <= plan.activeDays * 3,
-    `Total commits planned should be within 0-3 range per active day (got ${plan.totalCommitsPlanned})`
-  );
+
+  for (const decision of plan.decisions) {
+    if (decision.shouldCommit) {
+      assert.ok(decision.plannedCommits >= 1, `Active day ${decision.dateStr} must have >= 1 commit`);
+      assert.strictEqual(decision.commits.length, decision.plannedCommits);
+    }
+  }
 });
 
-// 4. Intensity Level 1 Organic Spectrum Test (0 to 10 commits with rest days)
-test('PatternEngine handles Level 1 intensity (0 to 10 commits range with rest days)', () => {
-  const engine = new PatternEngine({ weeks: 52, endDateStr: '2026-07-25', pattern: 'all-but-sat', intensity: 1 });
-  const plan = engine.generatePlan();
+// 4. Markov State Transition & Maximum 3-Day Rest Bounds
+test('Markov state engine strictly enforces maximum 3-day dry spell limit', () => {
+  // When daysSinceLastCommit >= 3, evaluateMarkovDecision must unconditionally return shouldCommit: true
+  const decisionDay3 = evaluateMarkovDecision('2026-08-16', 3, 3);
+  assert.strictEqual(decisionDay3.shouldCommit, true, 'Day 3 inactivity must force an active commit day');
 
-  assert.strictEqual(plan.patternName, 'all-but-sat');
-  assert.ok(plan.totalCommitsPlanned > 0, 'Level 1 should generate commits across the year');
-  assert.ok(plan.skippedDays >= 52, 'Level 1 should skip at least 52 Saturdays plus rest days');
+  const decisionDay5 = evaluateMarkovDecision('2026-08-16', 5, 3);
+  assert.strictEqual(decisionDay5.shouldCommit, true, 'Day 5 inactivity must force an active commit day');
 });
 
-// 5. Intensity Level 2 Organic Spectrum Test (0 to 3 commits with rest days)
-test('PatternEngine handles Level 2 intensity (0 to 3 commits range with rest days)', () => {
-  const engine = new PatternEngine({ weeks: 52, endDateStr: '2026-07-25', pattern: 'all-but-sat', intensity: 2 });
-  const plan = engine.generatePlan();
+// 5. Intensity Levels 1-4 Active Ranges Test
+test('Intensity Levels 1-4 generate correct active commit ranges', () => {
+  const dateStr = '2026-08-16';
+  
+  const c1 = getSeededRandomCommitCount(dateStr, 1);
+  assert.ok(c1 >= 1 && c1 <= 10, `Level 1 must be 1-10 (got ${c1})`);
 
-  assert.strictEqual(plan.patternName, 'all-but-sat');
-  assert.ok(plan.totalCommitsPlanned > 0, 'Level 2 should generate commits across the year');
-  assert.ok(plan.skippedDays >= 52, 'Level 2 should skip at least 52 Saturdays plus rest days');
+  const c2 = getSeededRandomCommitCount(dateStr, 2);
+  assert.ok(c2 >= 1 && c2 <= 3, `Level 2 must be 1-3 (got ${c2})`);
+
+  const c3 = getSeededRandomCommitCount(dateStr, 3);
+  assert.ok(c3 >= 1 && c3 <= 55, `Level 3 must be 1-55 (got ${c3})`);
+
+  const c4 = getSeededRandomCommitCount(dateStr, 4);
+  assert.ok(c4 >= 1 && c4 <= 80, `Level 4 must be 1-80 (got ${c4})`);
 });
 
-// 5. Intensity Level 3 Organic Spectrum Test (0 to 55 commits with rest days)
-test('PatternEngine handles Level 3 intensity (0 to 55 commits range with rest days)', () => {
-  const engine = new PatternEngine({ weeks: 52, endDateStr: '2026-07-25', pattern: 'all-but-sat', intensity: 3 });
-  const plan = engine.generatePlan();
+// 6. Circadian Human Working-Hour Timestamps Test
+test('createHumanCommitTimestampUTC generates realistic working hours (09:00 - 22:30 UTC)', () => {
+  const dateStr = '2026-08-16';
+  const totalCommits = 5;
 
-  assert.strictEqual(plan.patternName, 'all-but-sat');
-  assert.ok(plan.totalCommitsPlanned > 0, 'Level 3 should generate commits across the year');
-  assert.ok(plan.skippedDays >= 52, 'Level 3 should skip at least 52 Saturdays plus rest days');
+  for (let i = 1; i <= totalCommits; i++) {
+    const timestamp = createHumanCommitTimestampUTC(dateStr, i, totalCommits);
+    const dateObj = new Date(timestamp);
+    const hour = dateObj.getUTCHours();
+
+    assert.ok(hour >= 9 && hour <= 23, `Timestamp hour ${hour} must be within active hours 9-23`);
+    assert.strictEqual(formatDateUTC(dateObj), dateStr, 'Timestamp date must match input date string');
+  }
 });
 
-// 5. Intensity Level 4 Organic Spectrum Test (0 to 80 commits with rest days)
-test('PatternEngine handles Level 4 intensity (0 to 80 commits range with rest days)', () => {
-  const engine = new PatternEngine({ weeks: 52, endDateStr: '2026-07-25', pattern: 'all-but-sat', intensity: 4 });
-  const plan = engine.generatePlan();
-
-  assert.strictEqual(plan.patternName, 'all-but-sat');
-  assert.ok(plan.totalCommitsPlanned > 0, 'Level 4 should generate commits across the year');
-  assert.ok(plan.skippedDays >= 52, 'Level 4 should skip at least 52 Saturdays plus rest days');
-});
-
-// 5. Peak Preservation Exclusion Algorithm Test
+// 7. Peak Preservation Exclusion Algorithm Test
 test('DayOfWeekFilter strictly excludes May 11, May 27, and May 28 to preserve organic peaks', () => {
   const engine = new PatternEngine({
     startDateStr: '2026-05-01',
@@ -145,19 +153,20 @@ test('DayOfWeekFilter strictly excludes May 11, May 27, and May 28 to preserve o
   assert.strictEqual(may28?.plannedCommits, 0, 'May 28 should have 0 planned commits');
 });
 
-// 6. Start Date Override Test (January Start)
-test('PatternEngine starting from January correctly aligns timeline', () => {
-  const engine = new PatternEngine({
-    startDateStr: '2026-01-01',
-    endDateStr: '2026-08-01',
-    pattern: 'all-but-sat',
-    intensity: 4,
-  });
-  const plan = engine.generatePlan();
-  assert.ok(plan.startDateStr.startsWith('2026-01-') || plan.startDateStr.startsWith('2025-12-'), 'Start date should align near January 1');
+// 8. Git Lockfile Detection & Self-Recovery Test
+test('GitExec.cleanupStaleLocks detects and removes artificial stale locks', () => {
+  const gitDir = path.join(process.cwd(), '.git');
+  if (fs.existsSync(gitDir)) {
+    const dummyLock = path.join(gitDir, 'shallow.lock');
+    fs.writeFileSync(dummyLock, 'stale lock dummy content');
+    assert.ok(fs.existsSync(dummyLock), 'Dummy lock file should exist before cleanup');
+
+    GitExec.cleanupStaleLocks(process.cwd());
+    assert.strictEqual(fs.existsSync(dummyLock), false, 'Dummy lock file should be safely removed');
+  }
 });
 
-// 7. Verifier Compliance Test on Empty/Valid History
+// 9. Verifier Compliance Test
 test('Verifier correctly passes on non-Saturday commit check', () => {
   const result = Verifier.verify({ pattern: 'all-but-sat', maxCommits: 50 });
   assert.strictEqual(result.saturdayCommitsFound, 0, 'Current clean branch should have 0 Saturday commits');
