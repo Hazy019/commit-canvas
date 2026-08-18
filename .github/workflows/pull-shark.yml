@@ -1,0 +1,87 @@
+name: Pull Shark & PR Automation Engine
+
+on:
+  schedule:
+    # Runs twice daily on weekdays (08:00 UTC and 16:00 UTC) ~ 10 PR merges/week
+    - cron: '0 8,16 * * 1-5'
+  workflow_dispatch:
+    inputs:
+      pr_count:
+        description: 'Number of Pull Requests to generate and merge (1-5)'
+        required: false
+        default: '1'
+      auto_merge:
+        description: 'Automatically merge PR (uncheck to leave PR open for 1-click manual merge)'
+        type: boolean
+        required: false
+        default: true
+      category:
+        description: 'PR Category (docs, chore, refactor, types, perf)'
+        required: false
+        default: 'docs'
+      user_email:
+        description: 'Target author email (leave blank to use secrets.GIT_USER_EMAIL)'
+        required: false
+        default: ''
+
+jobs:
+  pull-shark-automation:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - name: Checkout Repository History
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js Environment
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci || npm install
+
+      - name: Configure Git Credentials
+        run: |
+          USER_EMAIL="${{ inputs.user_email }}"
+          if [ -z "$USER_EMAIL" ]; then
+            USER_EMAIL="${{ secrets.GIT_USER_EMAIL }}"
+          fi
+          if [ -z "$USER_EMAIL" ]; then
+            USER_EMAIL="Kyrell0602@gmail.com"
+          fi
+          git config user.name "${{ github.actor }}"
+          git config user.email "$USER_EMAIL"
+
+      - name: Execute Pull Shark PR Engine
+        run: |
+          PR_COUNT="${{ inputs.pr_count }}"
+          AUTO_MERGE="${{ inputs.auto_merge }}"
+          CATEGORY="${{ inputs.category }}"
+          USER_EMAIL="${{ inputs.user_email }}"
+
+          # Fallbacks for scheduled cron
+          PR_COUNT="${PR_COUNT:-1}"
+          AUTO_MERGE="${AUTO_MERGE:-true}"
+          CATEGORY="${CATEGORY:-docs}"
+          if [ -z "$USER_EMAIL" ]; then
+            USER_EMAIL="${{ secrets.GIT_USER_EMAIL }}"
+          fi
+          if [ -z "$USER_EMAIL" ]; then
+            USER_EMAIL="Kyrell0602@gmail.com"
+          fi
+
+          EXTRA_ARGS=""
+          if [ "$AUTO_MERGE" = "false" ]; then
+            EXTRA_ARGS="--no-merge"
+          fi
+
+          npx ts-node src/cli.ts pr-sync --count=$PR_COUNT --category=$CATEGORY --email="$USER_EMAIL" $EXTRA_ARGS
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

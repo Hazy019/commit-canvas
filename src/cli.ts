@@ -140,26 +140,38 @@ program
   });
 
 /**
- * HEAL COMMAND
- * Automatically drops violating Saturday commits from git history.
+ * PR-SYNC COMMAND
+ * Automates Pull Request creation and merging for Pull Shark achievement and natural PR ratios.
  */
 program
-  .command('heal')
-  .description('Automated self-healing: drops any violating Saturday commits via rebase')
-  .option('-b, --branch <name>', 'Branch to heal', 'main')
-  .option('-m, --max-commits <number>', 'Maximum commits to scan', '5000')
+  .command('pr-sync')
+  .description('Automate Pull Request creation and merge for Pull Shark achievement progression')
+  .option('-c, --count <number>', 'Number of PRs to create and merge', '1')
+  .option('--no-merge', 'Do not auto-merge PRs (leaves PR open for manual merge)', false)
+  .option('--email <email>', 'Target author email', 'Kyrell0602@gmail.com')
+  .option('--name <name>', 'Target author name', 'Hazy019')
+  .option('--category <category>', 'PR category (docs, chore, refactor, types, perf)')
   .action(async (options) => {
     try {
-      const maxCommits = parseInt(options.maxCommits, 10);
-      const { Healer } = await import('./engine/healer');
-      const success = Healer.heal(options.branch, maxCommits);
-      if (!success) {
-        process.exit(1);
-      }
+      const count = parseInt(options.count, 10);
+      const autoMerge = options.merge !== false;
+      const { PrAutomationEngine } = await import('./engine/prAutomation');
+      const engine = new PrAutomationEngine({
+        count,
+        autoMerge,
+        authorEmail: options.email,
+        authorName: options.name,
+        category: options.category,
+      });
+
+      const results = engine.run();
+      const mergedCount = results.filter((r) => r.merged).length;
+      Logger.success(`PR Sync complete: ${results.length} PRs created, ${mergedCount} merged successfully.`);
     } catch (err: any) {
-      Logger.error(`Healing failed: ${err.message}`);
+      Logger.error(`PR Sync failed: ${err.message}`);
       process.exit(1);
     }
   });
 
 program.parse(process.argv);
+
