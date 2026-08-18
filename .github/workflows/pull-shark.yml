@@ -7,14 +7,14 @@ on:
   workflow_dispatch:
     inputs:
       pr_count:
-        description: 'Number of Pull Requests to generate and merge (1-5)'
+        description: 'Number of Pull Requests to generate (1-5)'
         required: false
         default: '1'
       auto_merge:
-        description: 'Automatically merge PR (uncheck to leave PR open for 1-click manual merge)'
+        description: 'Automatically merge PR (leave UNCHECKED to merge manually on GitHub with 1 click)'
         type: boolean
         required: false
-        default: true
+        default: false
       category:
         description: 'PR Category (docs, chore, refactor, types, perf)'
         required: false
@@ -65,9 +65,9 @@ jobs:
           CATEGORY="${{ inputs.category }}"
           USER_EMAIL="${{ inputs.user_email }}"
 
-          # Fallbacks for scheduled cron
+          # Fallbacks for scheduled cron (runs in manual merge or auto merge mode)
           PR_COUNT="${PR_COUNT:-1}"
-          AUTO_MERGE="${AUTO_MERGE:-true}"
+          AUTO_MERGE="${AUTO_MERGE:-false}"
           CATEGORY="${CATEGORY:-docs}"
           if [ -z "$USER_EMAIL" ]; then
             USER_EMAIL="${{ secrets.GIT_USER_EMAIL }}"
@@ -76,12 +76,8 @@ jobs:
             USER_EMAIL="Kyrell0602@gmail.com"
           fi
 
-          EXTRA_ARGS=""
-          if [ "$AUTO_MERGE" = "false" ]; then
-            EXTRA_ARGS="--no-merge"
-          fi
-
-          npx ts-node src/cli.ts pr-sync --count=$PR_COUNT --category=$CATEGORY --email="$USER_EMAIL" $EXTRA_ARGS
+          npx ts-node src/cli.ts pr-sync --count=$PR_COUNT --category=$CATEGORY --email="$USER_EMAIL" --auto-merge="$AUTO_MERGE"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+

@@ -147,14 +147,14 @@ program
   .command('pr-sync')
   .description('Automate Pull Request creation and merge for Pull Shark achievement progression')
   .option('-c, --count <number>', 'Number of PRs to create and merge', '1')
-  .option('--no-merge', 'Do not auto-merge PRs (leaves PR open for manual merge)', false)
+  .option('--auto-merge <value>', 'Automatically merge PR (true/false)', 'false')
   .option('--email <email>', 'Target author email', 'Kyrell0602@gmail.com')
   .option('--name <name>', 'Target author name', 'Hazy019')
   .option('--category <category>', 'PR category (docs, chore, refactor, types, perf)')
   .action(async (options) => {
     try {
       const count = parseInt(options.count, 10);
-      const autoMerge = options.merge !== false;
+      const autoMerge = String(options.autoMerge).toLowerCase() === 'true';
       const { PrAutomationEngine } = await import('./engine/prAutomation');
       const engine = new PrAutomationEngine({
         count,

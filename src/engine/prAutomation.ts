@@ -184,6 +184,8 @@ export class PrAutomationEngine {
           } catch (mergeErr: any) {
             Logger.warn(`Auto-merge note: ${mergeErr.message}. Branch remains open for manual merge.`);
           }
+        } else {
+          Logger.info(`[MANUAL MERGE MODE] Pull Request is ready for your 1-click merge: ${prUrl}`);
         }
 
         results.push({
