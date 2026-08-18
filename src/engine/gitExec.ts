@@ -98,7 +98,8 @@ export class GitExec {
   }
 
   /**
-   * Creates empty commits cleanly and rapidly in pure Node with fault-tolerant GC management and lock recovery.
+   * Creates empty commits atomically and rapidly using Git plumbing (git commit-tree).
+   * Eliminates index locking, process overhead, and parent traversal corruption.
    */
   public static createEmptyCommitsBatch(
     commits: GitCommitOptions[],
@@ -107,39 +108,40 @@ export class GitExec {
   ): void {
     if (commits.length === 0) return;
 
-    // Temporarily disable auto-GC during batch creation to avoid background process locks
+    // Get current tree hash and initial parent commit hash
+    const treeHash = GitExec.run('git write-tree', {}, cwd);
+    let parentHash = GitExec.run('git rev-parse HEAD', {}, cwd);
+
+    // Retrieve default author name from git config or fallback
+    let authorName = 'Hazy019';
     try {
-      GitExec.run('git config --local gc.auto 0', {}, cwd);
+      authorName = GitExec.run('git config user.name', {}, cwd) || 'Hazy019';
     } catch {
-      // Ignore if repo is not configured yet
+      authorName = 'Hazy019';
     }
 
-    try {
-      for (const commit of commits) {
-        const { message, timestampIso, email } = commit;
-        const env: Record<string, string> = {
-          GIT_AUTHOR_DATE: timestampIso,
-          GIT_COMMITTER_DATE: timestampIso,
-        };
-        const targetEmail = authorEmail || email;
-        if (targetEmail) {
-          env.GIT_AUTHOR_EMAIL = targetEmail;
-          env.GIT_COMMITTER_EMAIL = targetEmail;
-        }
-        const safeMessage = message.replace(/"/g, '\\"');
-        // Use --quiet to keep stdio buffer light and fast
-        const cmd = `git commit --quiet --allow-empty -m "${safeMessage}"`;
-        GitExec.run(cmd, env, cwd);
+    for (const commit of commits) {
+      const { message, timestampIso, email } = commit;
+      const targetEmail = authorEmail || email || 'Kyrell0602@gmail.com';
+      const env: Record<string, string> = {
+        GIT_AUTHOR_NAME: authorName,
+        GIT_AUTHOR_EMAIL: targetEmail,
+        GIT_AUTHOR_DATE: timestampIso,
+        GIT_COMMITTER_NAME: authorName,
+        GIT_COMMITTER_EMAIL: targetEmail,
+        GIT_COMMITTER_DATE: timestampIso,
+      };
+      const safeMessage = message.replace(/"/g, '\\"');
+      const cmd = `git commit-tree ${treeHash} -p ${parentHash} -m "${safeMessage}"`;
+      const newCommitHash = GitExec.run(cmd, env, cwd);
+      if (!newCommitHash || newCommitHash.length < 40) {
+        throw new Error(`Failed to create commit object for message: ${message}`);
       }
-    } finally {
-      // Re-enable default auto-GC and repack objects into a clean packfile
-      try {
-        GitExec.run('git config --local --unset gc.auto', {}, cwd);
-        GitExec.run('git repack -a -d', {}, cwd);
-      } catch {
-        // Ignore
-      }
+      parentHash = newCommitHash;
     }
+
+    // Atomically update HEAD ref to the final commit in the chain
+    GitExec.run(`git update-ref HEAD ${parentHash}`, {}, cwd);
   }
 
   /**

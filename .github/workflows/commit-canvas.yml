@@ -116,5 +116,4 @@ jobs:
 
       - name: Push Updated Contribution History
         run: |
-          git repack -a -d -f
           git push origin HEAD:${{ github.ref_name }} --force
