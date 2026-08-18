@@ -18,10 +18,10 @@ export const INTENSITY_COMMIT_MAP: Record<IntensityLevel, number> = {
 };
 
 export const INTENSITY_COMMIT_RANGE_MAP: Record<IntensityLevel, { min: number; max: number }> = {
-  1: { min: 0, max: 10 },  // Organic light spectrum with rest days: 0 to 10 commits (~35% rest days)
-  2: { min: 0, max: 3 },   // Minimal organic spectrum with rest days: 0 to 3 commits (~35% rest days)
-  3: { min: 0, max: 30 },  // Organic moderate spectrum with rest days: 0 to 30 commits (~30% rest days)
-  4: { min: 0, max: 50 },  // Organic peak spectrum with rest days: 0 to 50 commits (~25% rest days)
+  1: { min: 1, max: 10 },  // Active light spectrum: 1 to 10 commits
+  2: { min: 1, max: 3 },   // Active minimal spectrum: 1 to 3 commits
+  3: { min: 1, max: 30 },  // Active moderate spectrum: 1 to 30 commits
+  4: { min: 1, max: 50 },  // Active peak spectrum: 1 to 50 commits
 };
 
 /**
@@ -72,8 +72,8 @@ export function evaluateMarkovDecision(
   const { roll } = seededHash(dateStr);
 
   if (daysSinceLastCommit === 1) {
-    // 75% chance to continue the active sprint; 25% chance to start a 1-day rest
-    if (roll < 25) {
+    // 70% chance to continue active sprint; 30% chance to start a 1-day rest
+    if (roll < 30) {
       return {
         shouldCommit: false,
         skipReason: 'Markov organic rest day (1/3)',
@@ -83,8 +83,8 @@ export function evaluateMarkovDecision(
   }
 
   if (daysSinceLastCommit === 2) {
-    // 85% chance to resume working after 1 day rest; 15% chance to extend rest
-    if (roll < 15) {
+    // 80% chance to resume working after 1 day rest; 20% chance to extend rest
+    if (roll < 20) {
       return {
         shouldCommit: false,
         skipReason: 'Markov organic rest day (2/3)',
@@ -98,105 +98,67 @@ export function evaluateMarkovDecision(
 }
 
 /**
- * Generates calibrated commit counts including organic rest day probability (0 commits).
+ * Generates calibrated active commit count (>= 1 commit) on active days.
  * Enforces strict hard upper bounds (max 50 commits peak, max 30 moderate, max 3 minimal, max 10 light).
  *
  * @param dateStr Target UTC date string (YYYY-MM-DD)
- * @param intensity Intensity level (1: 0-10, 2: 0-3, 3: 0-30, 4: 0-50)
- * @param forceActive When true (e.g. forced Markov wake-up after 3 dry days), guarantees >= 1 commit.
+ * @param intensity Intensity level (1: 1-10, 2: 1-3, 3: 1-30, 4: 1-50)
  */
 export function getSeededRandomCommitCount(
   dateStr: string,
-  intensity: IntensityLevel,
-  forceActive: boolean = false
+  intensity: IntensityLevel
 ): number {
   const { roll, count } = seededHash(dateStr);
 
-  let rawCount = 0;
-
   if (intensity === 1) {
-    // Level 1: 0-10 commits with organic rest day probability (~35%)
-    if (!forceActive && roll < 35) {
-      // Tier 0 (Rest Day / Blank): 0 commits (~35% of days)
-      rawCount = 0;
-    } else if (roll < 75) {
-      // Tier 1 (Light Green / 1-4 commits): (~40% of days)
-      rawCount = 1 + (count % 4);
-    } else if (roll < 90) {
-      // Tier 2 (Medium Green / 5-7 commits): (~15% of days)
-      rawCount = 5 + (count % 3);
+    // Level 1: 1-10 commits range
+    if (roll < 60) {
+      return 1 + (count % 3); // 1-3 commits (~60%)
+    } else if (roll < 85) {
+      return 4 + (count % 3); // 4-6 commits (~25%)
     } else {
-      // Tier 3 (Peak Light / 8-10 commits): (~10% of days)
-      rawCount = 8 + (count % 3);
+      return 7 + (count % 4); // 7-10 commits (~15%)
     }
-    // Strict bounds clamp [0, 10]
-    return Math.max(forceActive ? 1 : 0, Math.min(rawCount, 10));
   }
 
   if (intensity === 2) {
-    // Level 2: 0-3 commits with organic rest day probability (~35%)
-    if (!forceActive && roll < 35) {
-      // Tier 0 (Rest Day / Blank): 0 commits (~35% of days)
-      rawCount = 0;
-    } else if (roll < 65) {
-      // Tier 1 (1 commit): (~30% of days)
-      rawCount = 1;
-    } else if (roll < 85) {
-      // Tier 2 (2 commits): (~20% of days)
-      rawCount = 2;
+    // Level 2: 1-3 commits minimal spectrum
+    if (roll < 50) {
+      return 1; // 1 commit (~50%)
+    } else if (roll < 80) {
+      return 2; // 2 commits (~30%)
     } else {
-      // Tier 3 (3 commits): (~15% of days)
-      rawCount = 3;
+      return 3; // 3 commits (~20%)
     }
-    // Strict bounds clamp [0, 3]
-    return Math.max(forceActive ? 1 : 0, Math.min(rawCount, 3));
   }
 
   if (intensity === 3) {
-    // Level 3: 0-30 commits with organic rest day probability (~30%)
-    if (!forceActive && roll < 30) {
-      // Tier 0 (Rest Day / Blank): 0 commits (~30% of days)
-      rawCount = 0;
-    } else if (roll < 60) {
-      // Tier 1 (Light Green): 1 - 8 commits (~30% of days)
-      rawCount = 1 + (count % 8);
-    } else if (roll < 85) {
-      // Tier 2 (Medium Green): 9 - 18 commits (~25% of days)
-      rawCount = 9 + (count % 10);
-    } else if (roll < 93) {
-      // Tier 3 (Dark Green): 19 - 25 commits (~8% of days)
-      rawCount = 19 + (count % 7);
+    // Level 3: 1-30 commits moderate spectrum
+    if (roll < 50) {
+      return 1 + (count % 8); // 1 - 8 commits (~50%)
+    } else if (roll < 80) {
+      return 9 + (count % 10); // 9 - 18 commits (~30%)
+    } else if (roll < 92) {
+      return 19 + (count % 7); // 19 - 25 commits (~12%)
     } else {
-      // Tier 4 (Peak Moderate Sprint): 26 - 30 commits (~7% of days)
-      rawCount = 26 + (count % 5);
+      return 26 + (count % 5); // 26 - 30 commits (~8%)
     }
-    // Strict bounds clamp [0, 30]
-    return Math.max(forceActive ? 1 : 0, Math.min(rawCount, 30));
   }
 
   if (intensity === 4) {
-    // Level 4: 0-50 commits with organic rest day probability (~25%)
-    if (!forceActive && roll < 25) {
-      // Tier 0 (Rest Day / Blank): 0 commits (~25% of days)
-      rawCount = 0;
-    } else if (roll < 55) {
-      // Tier 1 (Light Green): 1 - 12 commits (~30% of days)
-      rawCount = 1 + (count % 12);
-    } else if (roll < 80) {
-      // Tier 2 (Medium Green): 13 - 30 commits (~25% of days)
-      rawCount = 13 + (count % 18);
-    } else if (roll < 92) {
-      // Tier 3 (Dark Green): 31 - 42 commits (~12% of days)
-      rawCount = 31 + (count % 12);
+    // Level 4: 1-50 commits peak spectrum
+    if (roll < 45) {
+      return 1 + (count % 12); // 1 - 12 commits (~45%)
+    } else if (roll < 75) {
+      return 13 + (count % 18); // 13 - 30 commits (~30%)
+    } else if (roll < 90) {
+      return 31 + (count % 12); // 31 - 42 commits (~15%)
     } else {
-      // Tier 4 (Peak Heavy Sprint): 43 - 50 commits (~8% of days)
-      rawCount = 43 + (count % 8);
+      return 43 + (count % 8); // 43 - 50 commits (~10%)
     }
-    // Strict bounds clamp [0, 50] - NEVER EXCEEDS 50 COMMITS!
-    return Math.max(forceActive ? 1 : 0, Math.min(rawCount, 50));
   }
 
-  return forceActive ? 1 : 0;
+  return 1;
 }
 
 export const PATTERN_RULES: Record<PatternName, PatternRuleConfig> = {

@@ -23,7 +23,7 @@ program
   .command('preview')
   .description('Preview the contribution activity grid and planned commits')
   .option('-w, --weeks <number>', 'Number of weeks in timeline grid', '52')
-  .option('-i, --intensity <level>', 'Intensity level (1: 0-10 light, 2: 0-3 minimal, 3: 0-30 moderate, 4: 0-50 peak)', '3')
+  .option('-i, --intensity <level>', 'Intensity level (1: 1-10 light, 2: 1-3 minimal, 3: 1-30 moderate, 4: 1-50 peak)', '3')
   .option('-p, --pattern <name>', 'Pattern rule name', 'all-but-sat')
   .option('-s, --start-date <date>', 'Target start date override (YYYY-MM-DD)')
   .option('-e, --end-date <date>', 'Target end date override (YYYY-MM-DD)')
@@ -34,7 +34,7 @@ program
       const weeks = parseInt(options.weeks, 10);
       const intensity = parseInt(options.intensity, 10) as IntensityLevel;
       const pattern = options.pattern as PatternName;
-      const excludeDates = options.excludeDates ? options.excludeDates.split(',').map((d: string) => d.trim()) : undefined;
+      const excludeDates = options.excludeDates ? options.excludeDates.split(',').map((d: string) => d.trim()).filter(Boolean) : [];
       const useMarkov = options.markov !== false;
 
       const engine = new PatternEngine({
@@ -56,14 +56,14 @@ program
   });
 
 /**
- * SYNC COMMAND
- * Executes the contribution pattern on the current git repository history.
+ * SYNC / EXECUTE COMMAND
+ * Generates and commits contribution pattern to local and remote repository history.
  */
 program
   .command('sync')
-  .description('Execute deterministic git commits for the target contribution grid pattern')
-  .option('-w, --weeks <number>', 'Number of weeks in timeline grid', '52')
-  .option('-i, --intensity <level>', 'Intensity level (1: 0-10 light, 2: 0-3 minimal, 3: 0-30 moderate, 4: 0-50 peak)', '3')
+  .description('Generate procedural contribution pattern and apply commits to git history')
+  .option('-w, --weeks <number>', 'Number of weeks in timeline grid', '1')
+  .option('-i, --intensity <level>', 'Intensity level (1: 1-10 light, 2: 1-3 minimal, 3: 1-30 moderate, 4: 1-50 peak)', '3')
   .option('-p, --pattern <name>', 'Pattern rule name', 'all-but-sat')
   .option('-d, --dry-run', 'Simulate execution without modifying git history', false)
   .option('-s, --start-date <date>', 'Target start date override (YYYY-MM-DD)')
