@@ -166,13 +166,25 @@ export class PrAutomationEngine {
         Logger.info(`Pushing branch '${branchName}' to remote...`);
         GitExec.run(`git push origin ${branchName} --force`, {}, cwd);
 
-        // 5. Open Pull Request via GitHub CLI (gh)
+        // 5. Open Pull Request via GitHub CLI (gh) using a temporary body file for pristine markdown rendering
         Logger.info(`Opening Pull Request on GitHub...`);
-        const safeBody = body.replace(/"/g, '\\"');
-        const prCreateCmd = `gh pr create --title "${safeTitle}" --body "${safeBody}" --head ${branchName} --base main`;
-        const prUrl = GitExec.run(prCreateCmd, {}, cwd);
+        const tempBodyFile = path.join(cwd, `.pr_body_${randomSuffix}.md`);
+        fs.writeFileSync(tempBodyFile, body, 'utf-8');
 
-        Logger.success(`Pull Request created: ${prUrl}`);
+        let prUrl = '';
+        try {
+          const prCreateCmd = `gh pr create --title "${safeTitle}" --body-file="${tempBodyFile}" --head ${branchName} --base main`;
+          prUrl = GitExec.run(prCreateCmd, {}, cwd);
+          Logger.success(`Pull Request created: ${prUrl}`);
+        } finally {
+          if (fs.existsSync(tempBodyFile)) {
+            try {
+              fs.unlinkSync(tempBodyFile);
+            } catch {
+              // Ignore
+            }
+          }
+        }
 
         let merged = false;
         if (this.options.autoMerge) {
