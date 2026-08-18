@@ -153,31 +153,24 @@ test('createHumanCommitTimestampUTC generates realistic working hours (09:00 - 2
 });
 
 // 7. Peak Preservation Exclusion Algorithm Test
-test('DayOfWeekFilter strictly excludes May 11, May 27, and May 28 to preserve organic peaks', () => {
+test('DayOfWeekFilter strictly excludes configured peak preservation dates (03-23, 03-27, 04-27, 05-11, 05-27, 05-28, 06-10, 06-14)', () => {
+  const excludeDates = ['03-23', '03-27', '04-27', '05-11', '05-27', '05-28', '06-10', '06-14'];
   const engine = new PatternEngine({
-    startDateStr: '2026-05-01',
-    endDateStr: '2026-05-31',
+    startDateStr: '2026-03-01',
+    endDateStr: '2026-06-30',
     pattern: 'all-but-sat',
     intensity: 4,
-    excludeDates: ['05-11', '05-27', '05-28'],
+    excludeDates,
   });
   const plan = engine.generatePlan();
 
-  const may11 = plan.decisions.find((d) => d.dateStr === '2026-05-11');
-  const may27 = plan.decisions.find((d) => d.dateStr === '2026-05-27');
-  const may28 = plan.decisions.find((d) => d.dateStr === '2026-05-28');
-
-  assert.ok(may11, 'May 11 decision should exist');
-  assert.strictEqual(may11?.shouldCommit, false, 'May 11 should be excluded');
-  assert.strictEqual(may11?.plannedCommits, 0, 'May 11 should have 0 planned commits');
-
-  assert.ok(may27, 'May 27 decision should exist');
-  assert.strictEqual(may27?.shouldCommit, false, 'May 27 should be excluded');
-  assert.strictEqual(may27?.plannedCommits, 0, 'May 27 should have 0 planned commits');
-
-  assert.ok(may28, 'May 28 decision should exist');
-  assert.strictEqual(may28?.shouldCommit, false, 'May 28 should be excluded');
-  assert.strictEqual(may28?.plannedCommits, 0, 'May 28 should have 0 planned commits');
+  for (const ex of excludeDates) {
+    const fullDateStr = `2026-${ex}`;
+    const decision = plan.decisions.find((d) => d.dateStr === fullDateStr);
+    assert.ok(decision, `${fullDateStr} decision should exist`);
+    assert.strictEqual(decision?.shouldCommit, false, `${fullDateStr} should be excluded`);
+    assert.strictEqual(decision?.plannedCommits, 0, `${fullDateStr} should have 0 planned commits`);
+  }
 });
 
 // 8. Git Lockfile Detection & Self-Recovery Test

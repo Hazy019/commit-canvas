@@ -34,7 +34,7 @@ on:
       exclude_dates:
         description: 'Comma-separated dates (MM-DD or YYYY-MM-DD) to exclude for peak preservation'
         required: false
-        default: '05-11,05-27,05-28'
+        default: '03-23,03-27,04-27,05-11,05-27,05-28,06-10,06-14'
 
 jobs:
   generate-contribution-pattern:
@@ -81,7 +81,7 @@ jobs:
           # Fallback for schedule events (daily cron) where inputs are empty
           INTENSITY="${INTENSITY:-3}"
           WEEKS="${WEEKS:-1}"
-          EXCLUDE_DATES="${EXCLUDE_DATES:-05-11,05-27,05-28}"
+          EXCLUDE_DATES="${EXCLUDE_DATES:-03-23,03-27,04-27,05-11,05-27,05-28,06-10,06-14}"
           if [ -z "$USER_EMAIL" ]; then
             USER_EMAIL="${{ secrets.GIT_USER_EMAIL }}"
           fi

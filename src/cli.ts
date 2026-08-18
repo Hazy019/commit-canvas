@@ -27,7 +27,7 @@ program
   .option('-p, --pattern <name>', 'Pattern rule name', 'all-but-sat')
   .option('-s, --start-date <date>', 'Target start date override (YYYY-MM-DD)')
   .option('-e, --end-date <date>', 'Target end date override (YYYY-MM-DD)')
-  .option('-x, --exclude-dates <dates>', 'Comma-separated dates (MM-DD or YYYY-MM-DD) to exclude for peak preservation', '05-11,05-27,05-28')
+  .option('-x, --exclude-dates <dates>', 'Comma-separated dates (MM-DD or YYYY-MM-DD) to exclude for peak preservation', '03-23,03-27,04-27,05-11,05-27,05-28,06-10,06-14')
   .option('--no-markov', 'Disable Markov state transition simulation')
   .action((options) => {
     try {
@@ -68,7 +68,7 @@ program
   .option('-d, --dry-run', 'Simulate execution without modifying git history', false)
   .option('-s, --start-date <date>', 'Target start date override (YYYY-MM-DD)')
   .option('-e, --end-date <date>', 'Target end date override (YYYY-MM-DD)')
-  .option('-x, --exclude-dates <dates>', 'Comma-separated dates (MM-DD or YYYY-MM-DD) to exclude for peak preservation', '05-11,05-27,05-28')
+  .option('-x, --exclude-dates <dates>', 'Comma-separated dates (MM-DD or YYYY-MM-DD) to exclude for peak preservation', '03-23,03-27,04-27,05-11,05-27,05-28,06-10,06-14')
   .option('-m, --email <email>', 'Target author email for contribution attribution')
   .option('-f, --force', 'Bypass idempotency check and force re-committing pattern', false)
   .option('--no-markov', 'Disable Markov state transition modeling')
