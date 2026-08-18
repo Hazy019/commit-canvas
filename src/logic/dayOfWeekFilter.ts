@@ -66,6 +66,7 @@ export class DayOfWeekFilter {
     }
 
     // 3. MARKOV STATE TRANSITION EVALUATION (if state provided)
+    let forceActive = false;
     if (typeof daysSinceLastCommit === 'number') {
       const markov = evaluateMarkovDecision(dateStr, daysSinceLastCommit);
       if (!markov.shouldCommit) {
@@ -81,10 +82,28 @@ export class DayOfWeekFilter {
           skipReason: markov.skipReason || 'Markov state rest day',
         };
       }
+      // If daysSinceLastCommit reached hard cap (e.g. >= 3), force at least 1 commit
+      if (daysSinceLastCommit >= 3) {
+        forceActive = true;
+      }
     }
 
-    // 4. GENERATE ACTIVE COMMITS (Guaranteed >= 1 commit on active days)
-    const commitCount = getSeededRandomCommitCount(dateStr, this.intensity);
+    // 4. GENERATE COMMITS (Calibrated count with organic rest day probability)
+    const commitCount = getSeededRandomCommitCount(dateStr, this.intensity, forceActive);
+
+    if (commitCount === 0) {
+      return {
+        dateStr,
+        date,
+        dayOfWeek,
+        dayName,
+        shouldCommit: false,
+        plannedCommits: 0,
+        commits: [],
+        daysSinceLastCommit,
+        skipReason: 'Organic rest day (0 commits generated)',
+      };
+    }
 
     const commits: CommitInfo[] = [];
     for (let i = 1; i <= commitCount; i++) {

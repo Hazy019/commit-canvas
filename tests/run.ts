@@ -67,47 +67,74 @@ test('DateIterator aligns timeline grid over 52 weeks', () => {
   assert.strictEqual(getUTCDayOfWeek(firstDate), 0, 'Grid start date must be a Sunday (0)');
 });
 
-// 3. Pattern Engine Generation & Zero-Waste Active Day Tests
-test('PatternEngine guarantees >= 1 commit on active days (No 0-commit dead runs)', () => {
+// 3. Pattern Engine Generation & Organic Rest Day Tests
+test('PatternEngine correctly handles active days and organic rest days (0 commits)', () => {
   const engine = new PatternEngine({ weeks: 52, endDateStr: '2026-07-25', pattern: 'all-but-sat', intensity: 2, excludeDates: [] });
   const plan = engine.generatePlan();
 
   assert.strictEqual(plan.patternName, 'all-but-sat');
-  assert.ok(plan.skippedDays >= 52, '52 weeks should yield at least 52 skipped Saturdays plus rest days');
+  assert.ok(plan.skippedDays >= 52, '52 weeks should yield at least 52 skipped Saturdays plus organic rest days');
+  assert.ok(plan.activeDays > 0, 'Plan should contain active commit days');
 
   for (const decision of plan.decisions) {
     if (decision.shouldCommit) {
       assert.ok(decision.plannedCommits >= 1, `Active day ${decision.dateStr} must have >= 1 commit`);
       assert.strictEqual(decision.commits.length, decision.plannedCommits);
+    } else {
+      assert.strictEqual(decision.plannedCommits, 0, `Skipped/Rest day ${decision.dateStr} must have 0 planned commits`);
+      assert.strictEqual(decision.commits.length, 0);
     }
   }
 });
 
 // 4. Markov State Transition & Maximum 3-Day Rest Bounds
-test('Markov state engine strictly enforces maximum 3-day dry spell limit', () => {
+test('Markov state engine strictly enforces maximum 3-day dry spell limit with forced commit', () => {
   // When daysSinceLastCommit >= 3, evaluateMarkovDecision must unconditionally return shouldCommit: true
   const decisionDay3 = evaluateMarkovDecision('2026-08-16', 3, 3);
   assert.strictEqual(decisionDay3.shouldCommit, true, 'Day 3 inactivity must force an active commit day');
 
   const decisionDay5 = evaluateMarkovDecision('2026-08-16', 5, 3);
   assert.strictEqual(decisionDay5.shouldCommit, true, 'Day 5 inactivity must force an active commit day');
+
+  // getSeededRandomCommitCount with forceActive=true must generate >= 1 commit
+  const forcedCount = getSeededRandomCommitCount('2026-08-16', 2, true);
+  assert.ok(forcedCount >= 1, 'Forced active day must generate >= 1 commit');
 });
 
-// 5. Intensity Levels 1-4 Active Ranges Test
-test('Intensity Levels 1-4 generate correct active commit ranges', () => {
-  const dateStr = '2026-08-16';
-  
-  const c1 = getSeededRandomCommitCount(dateStr, 1);
-  assert.ok(c1 >= 1 && c1 <= 10, `Level 1 must be 1-10 (got ${c1})`);
+// 5. Intensity Levels 1-4 Calibrated Ranges & Hard Cap <= 80 Test
+test('Intensity Levels 1-4 generate correct ranges [0, max] and strictly NEVER exceed 80 commits', () => {
+  // Test across an entire year of dates (365 days) to ensure absolute statistical compliance
+  const baseDate = new Date('2026-01-01T00:00:00Z');
+  let foundZeroL1 = false;
+  let foundZeroL2 = false;
+  let foundZeroL3 = false;
+  let foundZeroL4 = false;
 
-  const c2 = getSeededRandomCommitCount(dateStr, 2);
-  assert.ok(c2 >= 1 && c2 <= 3, `Level 2 must be 1-3 (got ${c2})`);
+  for (let d = 0; d < 365; d++) {
+    const curr = new Date(baseDate.getTime() + d * 86400000);
+    const dateStr = formatDateUTC(curr);
 
-  const c3 = getSeededRandomCommitCount(dateStr, 3);
-  assert.ok(c3 >= 1 && c3 <= 55, `Level 3 must be 1-55 (got ${c3})`);
+    const c1 = getSeededRandomCommitCount(dateStr, 1);
+    assert.ok(c1 >= 0 && c1 <= 10, `Level 1 must be in [0, 10] (got ${c1} on ${dateStr})`);
+    if (c1 === 0) foundZeroL1 = true;
 
-  const c4 = getSeededRandomCommitCount(dateStr, 4);
-  assert.ok(c4 >= 1 && c4 <= 80, `Level 4 must be 1-80 (got ${c4})`);
+    const c2 = getSeededRandomCommitCount(dateStr, 2);
+    assert.ok(c2 >= 0 && c2 <= 3, `Level 2 must be in [0, 3] (got ${c2} on ${dateStr})`);
+    if (c2 === 0) foundZeroL2 = true;
+
+    const c3 = getSeededRandomCommitCount(dateStr, 3);
+    assert.ok(c3 >= 0 && c3 <= 55, `Level 3 must be in [0, 55] (got ${c3} on ${dateStr})`);
+    if (c3 === 0) foundZeroL3 = true;
+
+    const c4 = getSeededRandomCommitCount(dateStr, 4);
+    assert.ok(c4 >= 0 && c4 <= 80, `Level 4 must be in [0, 80] and NEVER > 80 (got ${c4} on ${dateStr})`);
+    if (c4 === 0) foundZeroL4 = true;
+  }
+
+  assert.ok(foundZeroL1, 'Level 1 must produce 0-commit rest days');
+  assert.ok(foundZeroL2, 'Level 2 must produce 0-commit rest days');
+  assert.ok(foundZeroL3, 'Level 3 must produce 0-commit rest days');
+  assert.ok(foundZeroL4, 'Level 4 must produce 0-commit rest days');
 });
 
 // 6. Circadian Human Working-Hour Timestamps Test

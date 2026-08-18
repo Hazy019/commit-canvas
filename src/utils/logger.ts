@@ -59,12 +59,13 @@ export class Logger {
       console.log(rowDisplay);
     }
 
+    const avgCommits = summary.activeDays > 0 ? (summary.totalCommitsPlanned / summary.activeDays).toFixed(1) : '0';
     console.log('\n---------------------------------------------------------------');
     console.log(` Timeline Range : ${summary.startDateStr} to ${summary.endDateStr}`);
     console.log(` Total Days     : ${summary.totalDays} days (${summary.totalDays / 7} weeks)`);
     console.log(` Active Days    : ${summary.activeDays} days (Sun-Fri)`);
-    console.log(` Skipped Days   : ${summary.skippedDays} Saturdays`);
-    console.log(` Intensity      : Level ${summary.intensity} (${summary.totalCommitsPlanned / summary.activeDays} commits/active day)`);
+    console.log(` Skipped Days   : ${summary.skippedDays} days (Saturdays & Organic Rest Days)`);
+    console.log(` Intensity      : Level ${summary.intensity} (~${avgCommits} commits/active day)`);
     console.log(` Total Commits  : ${summary.totalCommitsPlanned} commits`);
     console.log('===============================================================\n');
   }
