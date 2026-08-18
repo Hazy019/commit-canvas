@@ -132,9 +132,10 @@ export class GitExec {
         GitExec.run(cmd, env, cwd);
       }
     } finally {
-      // Re-enable default auto-GC after batch completion
+      // Re-enable default auto-GC and repack objects into a clean packfile
       try {
         GitExec.run('git config --local --unset gc.auto', {}, cwd);
+        GitExec.run('git repack -a -d', {}, cwd);
       } catch {
         // Ignore
       }
