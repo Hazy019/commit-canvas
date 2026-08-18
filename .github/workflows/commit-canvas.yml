@@ -7,9 +7,9 @@ on:
   workflow_dispatch:
     inputs:
       user_email:
-        description: 'Target author email for contribution attribution (defaults to secrets.GIT_USER_EMAIL or actor noreply)'
+        description: 'Target author email for contribution attribution (defaults to kyrell0602@gmail.com)'
         required: false
-        default: ''
+        default: 'kyrell0602@gmail.com'
       force:
         description: 'Force re-committing pattern (bypasses idempotency check)'
         type: boolean
@@ -64,7 +64,7 @@ jobs:
             USER_EMAIL="${{ secrets.GIT_USER_EMAIL }}"
           fi
           if [ -z "$USER_EMAIL" ]; then
-            USER_EMAIL="${{ github.actor }}@users.noreply.github.com"
+            USER_EMAIL="kyrell0602@gmail.com"
           fi
           git config user.name "${{ github.actor }}"
           git config user.email "$USER_EMAIL"
@@ -86,7 +86,7 @@ jobs:
             USER_EMAIL="${{ secrets.GIT_USER_EMAIL }}"
           fi
           if [ -z "$USER_EMAIL" ]; then
-            USER_EMAIL="${{ github.actor }}@users.noreply.github.com"
+            USER_EMAIL="kyrell0602@gmail.com"
           fi
           EXTRA_ARGS=""
           if [ -n "$START_DATE" ]; then
