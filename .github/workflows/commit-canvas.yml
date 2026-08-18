@@ -114,14 +114,6 @@ jobs:
           echo "Healing complete. Re-verifying..."
           npx ts-node src/cli.ts verify --pattern=all-but-sat
 
-      - name: Push Updated Contribution History (with Force-With-Lease Fallback)
+      - name: Push Updated Contribution History
         run: |
-          for i in 1 2 3; do
-            git push --force-with-lease origin HEAD:${{ github.ref_name }} && break || {
-              echo "Push failed. Retrying attempt $i of 3 in $(( $i * 3 ))s..."
-              sleep $(( $i * 3 ))
-              git fetch origin ${{ github.ref_name }}
-            }
-          done
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          git push "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" HEAD:${{ github.ref_name }} --force
