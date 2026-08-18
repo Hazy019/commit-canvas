@@ -16,7 +16,7 @@ on:
         required: false
         default: false
       intensity:
-        description: 'Intensity Level (1: 1-10 light, 2: 1-3 minimal, 3: 1-55 moderate, 4: 1-80 peak)'
+        description: 'Intensity Level (1: 0-10 light, 2: 0-3 minimal, 3: 0-30 moderate, 4: 0-50 peak)'
         required: false
         default: '3'
       weeks:

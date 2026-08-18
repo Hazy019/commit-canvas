@@ -101,8 +101,8 @@ test('Markov state engine strictly enforces maximum 3-day dry spell limit with f
   assert.ok(forcedCount >= 1, 'Forced active day must generate >= 1 commit');
 });
 
-// 5. Intensity Levels 1-4 Calibrated Ranges & Hard Cap <= 80 Test
-test('Intensity Levels 1-4 generate correct ranges [0, max] and strictly NEVER exceed 80 commits', () => {
+// 5. Intensity Levels 1-4 Calibrated Ranges & Hard Cap <= 50 Test
+test('Intensity Levels 1-4 generate correct ranges [0, max] (L3: 0-30, L4: 0-50) and strictly NEVER exceed 50 commits', () => {
   // Test across an entire year of dates (365 days) to ensure absolute statistical compliance
   const baseDate = new Date('2026-01-01T00:00:00Z');
   let foundZeroL1 = false;
@@ -123,11 +123,11 @@ test('Intensity Levels 1-4 generate correct ranges [0, max] and strictly NEVER e
     if (c2 === 0) foundZeroL2 = true;
 
     const c3 = getSeededRandomCommitCount(dateStr, 3);
-    assert.ok(c3 >= 0 && c3 <= 55, `Level 3 must be in [0, 55] (got ${c3} on ${dateStr})`);
+    assert.ok(c3 >= 0 && c3 <= 30, `Level 3 must be in [0, 30] (got ${c3} on ${dateStr})`);
     if (c3 === 0) foundZeroL3 = true;
 
     const c4 = getSeededRandomCommitCount(dateStr, 4);
-    assert.ok(c4 >= 0 && c4 <= 80, `Level 4 must be in [0, 80] and NEVER > 80 (got ${c4} on ${dateStr})`);
+    assert.ok(c4 >= 0 && c4 <= 50, `Level 4 must be in [0, 50] and NEVER > 50 (got ${c4} on ${dateStr})`);
     if (c4 === 0) foundZeroL4 = true;
   }
 
