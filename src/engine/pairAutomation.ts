@@ -227,6 +227,7 @@ export class PairAutomationEngine {
           }
         } else {
           Logger.info(`[1-CLICK MANUAL MERGE] Pull Request is ready for your 1-click merge: ${prUrl}`);
+          Logger.info(`👉 Open ${prUrl} and click 'Merge pull request' to increment your PR count & Pair Extraordinaire achievement!`);
         }
 
         results.push({
@@ -269,6 +270,25 @@ export class PairAutomationEngine {
         } catch {
           // Ignore
         }
+      }
+    }
+
+    // Write GitHub Actions Step Summary if running in CI
+    const stepSummaryFile = process.env.GITHUB_STEP_SUMMARY;
+    if (stepSummaryFile && fs.existsSync(path.dirname(stepSummaryFile))) {
+      try {
+        let summaryMd = `\n### 👥 Pair Extraordinaire Achievement Engine Summary\n\n`;
+        summaryMd += `| PR Title | Branch | Status | Action |\n`;
+        summaryMd += `| :--- | :--- | :--- | :--- |\n`;
+        for (const res of results) {
+          const statusText = res.merged ? '✅ Merged' : (res.success ? '⏳ Ready for 1-Click Merge' : '❌ Failed');
+          const actionText = res.prUrl ? `[🔗 Open PR to Merge](${res.prUrl.trim()})` : 'N/A';
+          summaryMd += `| **${res.title}** | \`${res.branchName}\` | ${statusText} | ${actionText} |\n`;
+        }
+        summaryMd += `\n> 💡 **Notice**: Merging these PRs advances both your **Pull Request counter**, **Pull Shark**, and **Pair Extraordinaire** badges.\n`;
+        fs.appendFileSync(stepSummaryFile, summaryMd, 'utf-8');
+      } catch {
+        // Ignore summary write errors
       }
     }
 

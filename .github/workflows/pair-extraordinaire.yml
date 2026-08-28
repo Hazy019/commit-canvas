@@ -55,6 +55,14 @@ jobs:
       - name: Install Dependencies
         run: npm ci || npm install
 
+      - name: Validate GitHub Authentication Token
+        run: |
+          if [ -n "${{ secrets.GH_PAT }}" ]; then
+            echo "::notice title=Auth Status::Using GH_PAT (PR will be authored directly by @${{ github.actor }} and attributed to your profile stats)."
+          else
+            echo "::warning title=Auth Note::GH_PAT secret not detected. Using runner GITHUB_TOKEN (PR will be authored by github-actions[bot]). For PR author attribution on your profile stats, configure a repository secret named GH_PAT with repo and workflow scopes."
+          fi
+
       - name: Configure Git Credentials
         run: |
           USER_EMAIL="${{ inputs.user_email }}"
