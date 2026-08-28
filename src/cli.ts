@@ -173,5 +173,43 @@ program
     }
   });
 
+/**
+ * PAIR-SYNC COMMAND
+ * Automates Pull Request creation with co-authorship for Pair Extraordinaire achievement progression.
+ */
+program
+  .command('pair-sync')
+  .description('Automate Pull Request creation with co-authorship trailer for Pair Extraordinaire achievement progression')
+  .option('-c, --count <number>', 'Number of PRs to create', '1')
+  .option('--auto-merge <value>', 'Automatically merge PR (true/false, default false for 1-click manual merge)', 'false')
+  .option('--email <email>', 'Target primary author email', 'Kyrell0602@gmail.com')
+  .option('--name <name>', 'Target primary author name', 'Hazy019')
+  .option('--coauthor-name <name>', 'Co-author name/handle', 'Mitakashim3')
+  .option('--coauthor-email <email>', 'Co-author email', 'Mitakashim3@users.noreply.github.com')
+  .option('--category <category>', 'PR category (collab, docs, refactor, types, perf, feature)')
+  .action(async (options) => {
+    try {
+      const count = parseInt(options.count, 10);
+      const autoMerge = String(options.autoMerge).toLowerCase() === 'true';
+      const { PairAutomationEngine } = await import('./engine/pairAutomation');
+      const engine = new PairAutomationEngine({
+        count,
+        autoMerge,
+        authorEmail: options.email,
+        authorName: options.name,
+        coauthorName: options.coauthorName,
+        coauthorEmail: options.coauthorEmail,
+        category: options.category,
+      });
+
+      const results = engine.run();
+      const mergedCount = results.filter((r) => r.merged).length;
+      Logger.success(`Pair Sync complete: ${results.length} PRs created, ${mergedCount} merged successfully.`);
+    } catch (err: any) {
+      Logger.error(`Pair Sync failed: ${err.message}`);
+      process.exit(1);
+    }
+  });
+
 program.parse(process.argv);
 

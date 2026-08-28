@@ -50,15 +50,33 @@ npm run verify
 npx ts-node src/cli.ts verify --pattern=all-but-sat
 ```
 
+### 4. Pull Shark Achievement Automation (`pr-sync`)
+Automates creation and optional merging of maintenance pull requests to advance GitHub's **Pull Shark** badge:
+
+```bash
+# Generate 1 PR ready for 1-click manual merge
+npx ts-node src/cli.ts pr-sync --count=1 --category=docs --auto-merge=false
+
+# Auto-merge PR immediately
+npx ts-node src/cli.ts pr-sync --count=1 --auto-merge=true
+```
+
+### 5. Pair Extraordinaire Achievement Automation (`pair-sync`)
+Automates pull request creation with co-authored git commits to advance GitHub's **Pair Extraordinaire** badge:
+
+```bash
+# Generate 1 co-authored PR for 1-click manual merge
+npx ts-node src/cli.ts pair-sync --count=1 --coauthor-name="Mitakashim3" --coauthor-email="Mitakashim3@users.noreply.github.com" --auto-merge=false
+```
+
 ## Running Unit Tests
 
 ```bash
 npm test
 ```
 
-## GitHub Actions Automated Cron Pipeline
+## GitHub Actions Automated Pipelines
 
-The workflow in `.github/workflows/commit-canvas.yml` runs daily at `00:00 UTC` and on `workflow_dispatch`. It automatically:
-1. Runs `commit-canvas sync --pattern=all-but-sat --intensity=2`.
-2. Runs `commit-canvas verify --pattern=all-but-sat`.
-3. Pushes updated contribution history back to the main branch.
+1. **Commit Canvas Daily Sync** (`.github/workflows/commit-canvas.yml`): Runs daily at `00:00 UTC` to maintain activity grids.
+2. **Pull Shark Engine** (`.github/workflows/pull-shark.yml`): Runs weekday PR automation for Pull Shark milestone progression.
+3. **Pair Extraordinaire Engine** (`.github/workflows/pair-extraordinaire.yml`): Runs weekday collaborative PR automation with co-authorship trailers and 1-click manual merge.

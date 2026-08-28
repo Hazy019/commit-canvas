@@ -7,6 +7,7 @@ import { Verifier } from '../src/engine/verifier';
 import { DateIterator } from '../src/logic/dateIterator';
 import { DayOfWeekFilter } from '../src/logic/dayOfWeekFilter';
 import { PatternEngine } from '../src/logic/patternEngine';
+import { PairAutomationEngine, PAIR_PR_TEMPLATES } from '../src/engine/pairAutomation';
 import { createHumanCommitTimestampUTC, formatDateUTC, getUTCDayOfWeek, parseDateUTC } from '../src/utils/timezone';
 
 console.log('\n========================================');
@@ -178,6 +179,26 @@ test('Verifier correctly passes on non-Saturday commit check', () => {
   const result = Verifier.verify({ pattern: 'all-but-sat', maxCommits: 50 });
   assert.strictEqual(result.saturdayCommitsFound, 0, 'Current clean branch should have 0 Saturday commits');
   assert.strictEqual(result.success, true, 'Verification result should be success: true');
+});
+
+// 10. Pair Extraordinaire Co-Authorship Trailer & Template Test
+test('PairAutomationEngine formats compliant GitHub Co-authored-by trailers & collaborative PR templates', () => {
+  // Verify commit message format
+  const msg = PairAutomationEngine.formatCommitMessage(
+    'feat(collab): state sync',
+    'Session description',
+    'Mitakashim3',
+    'Mitakashim3@users.noreply.github.com'
+  );
+
+  assert.ok(msg.includes('Co-authored-by: Mitakashim3 <Mitakashim3@users.noreply.github.com>'), 'Must contain exact Co-authored-by trailer');
+  assert.ok(msg.startsWith('feat(collab): state sync\n\nSession description\n\n'), 'Must maintain double newline spacing before trailer');
+
+  // Verify templates
+  assert.ok(PAIR_PR_TEMPLATES.length >= 4, 'Must have at least 4 collaborative templates');
+  const body = PAIR_PR_TEMPLATES[0].generateBody('2026-08-28', 'TEST-123', 'Mitakashim3');
+  assert.ok(body.includes('@Mitakashim3'), 'Generated PR body must reference co-author handle');
+  assert.ok(body.includes('Pair Extraordinaire'), 'Generated PR body must reference Pair Extraordinaire pipeline');
 });
 
 console.log(`\nResults: ${passed}/${total} unit tests passed.\n`);

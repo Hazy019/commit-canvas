@@ -1,0 +1,103 @@
+name: Pair Extraordinaire Achievement Engine
+
+on:
+  schedule:
+    # Runs twice daily on weekdays (09:00 UTC and 17:00 UTC) ~ 10 co-authored PRs/week
+    - cron: '0 9,17 * * 1-5'
+  workflow_dispatch:
+    inputs:
+      pr_count:
+        description: 'Number of Co-Authored PRs to generate (1-5)'
+        required: false
+        default: '1'
+      auto_merge:
+        description: 'Automatically merge PR (leave UNCHECKED to merge manually on GitHub with 1 click)'
+        type: boolean
+        required: false
+        default: false
+      coauthor_name:
+        description: 'Co-Author GitHub username (e.g. Mitakashim3)'
+        required: false
+        default: 'Mitakashim3'
+      coauthor_email:
+        description: 'Co-Author email address'
+        required: false
+        default: 'Mitakashim3@users.noreply.github.com'
+      category:
+        description: 'Collaborative PR Category (collab, docs, refactor, types)'
+        required: false
+        default: 'collab'
+      user_email:
+        description: 'Primary author email (leave blank to use secrets.GIT_USER_EMAIL)'
+        required: false
+        default: ''
+
+jobs:
+  pair-extraordinaire-automation:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - name: Checkout Repository History
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
+
+      - name: Setup Node.js Environment
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci || npm install
+
+      - name: Configure Git Credentials
+        run: |
+          USER_EMAIL="${{ inputs.user_email }}"
+          if [ -z "$USER_EMAIL" ]; then
+            USER_EMAIL="${{ secrets.GIT_USER_EMAIL }}"
+          fi
+          if [ -z "$USER_EMAIL" ]; then
+            USER_EMAIL="Kyrell0602@gmail.com"
+          fi
+          git config user.name "${{ github.actor }}"
+          git config user.email "$USER_EMAIL"
+
+      - name: Execute Pair Extraordinaire PR Engine
+        run: |
+          PR_COUNT="${{ inputs.pr_count }}"
+          AUTO_MERGE="${{ inputs.auto_merge }}"
+          CATEGORY="${{ inputs.category }}"
+          USER_EMAIL="${{ inputs.user_email }}"
+          COAUTHOR_NAME="${{ inputs.coauthor_name }}"
+          COAUTHOR_EMAIL="${{ inputs.coauthor_email }}"
+
+          # Fallbacks for scheduled cron
+          PR_COUNT="${PR_COUNT:-1}"
+          AUTO_MERGE="${AUTO_MERGE:-false}"
+          CATEGORY="${CATEGORY:-collab}"
+          COAUTHOR_NAME="${COAUTHOR_NAME:-Mitakashim3}"
+          COAUTHOR_EMAIL="${COAUTHOR_EMAIL:-Mitakashim3@users.noreply.github.com}"
+
+          if [ -z "$USER_EMAIL" ]; then
+            USER_EMAIL="${{ secrets.GIT_USER_EMAIL }}"
+          fi
+          if [ -z "$USER_EMAIL" ]; then
+            USER_EMAIL="Kyrell0602@gmail.com"
+          fi
+
+          npx ts-node src/cli.ts pair-sync \
+            --count=$PR_COUNT \
+            --category=$CATEGORY \
+            --email="$USER_EMAIL" \
+            --name="${{ github.actor }}" \
+            --coauthor-name="$COAUTHOR_NAME" \
+            --coauthor-email="$COAUTHOR_EMAIL" \
+            --auto-merge="$AUTO_MERGE"
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}

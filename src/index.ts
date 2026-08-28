@@ -7,5 +7,7 @@ export * from './engine/gitExec';
 export * from './engine/commitRunner';
 export * from './engine/verifier';
 export * from './engine/healer';
+export * from './engine/prAutomation';
+export * from './engine/pairAutomation';
 export * from './utils/timezone';
 export * from './utils/logger';
