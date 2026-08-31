@@ -2,9 +2,9 @@ name: Pull Shark & PR Automation Engine
 
 on:
   schedule:
-    # Runs twice daily every day (08:15 UTC / 16:15 GMT+8 and 16:15 UTC / 00:15 GMT+8)
-    # Off-peak minute (:15) avoids top-of-the-hour GitHub Actions queue congestion
-    - cron: '15 8,16 * * *'
+    # Runs twice daily from Sunday to Friday (11:15 GMT+8 & 19:15 GMT+8 = 03:15 UTC & 11:15 UTC)
+    # Day-of-week '0-5' strictly runs Sunday (0) through Friday (5) and skips Saturday (6)
+    - cron: '15 3,11 * * 0-5'
   workflow_dispatch:
     inputs:
       pr_count:

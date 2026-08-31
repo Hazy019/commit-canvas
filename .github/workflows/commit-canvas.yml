@@ -2,9 +2,9 @@ name: Commit Canvas Daily Automation
 
 on:
   schedule:
-    # Run daily at 00:10 UTC (08:10 GMT+8)
-    # Off-peak minute (:10) avoids top-of-the-hour GitHub Actions queue congestion
-    - cron: '10 0 * * *'
+    # Run daily from Sunday to Friday at 01:10 UTC (09:10 GMT+8 morning)
+    # Day-of-week '0-5' strictly runs Sunday (0) through Friday (5) and skips Saturday (6)
+    - cron: '10 1 * * 0-5'
   workflow_dispatch:
     inputs:
       user_email:
