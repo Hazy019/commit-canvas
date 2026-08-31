@@ -2,8 +2,9 @@ name: Pair Extraordinaire Achievement Engine
 
 on:
   schedule:
-    # Runs twice daily on weekdays (09:00 UTC and 17:00 UTC) ~ 10 co-authored PRs/week
-    - cron: '0 9,17 * * 1-5'
+    # Runs twice daily every day (09:25 UTC / 17:25 GMT+8 and 17:25 UTC / 01:25 GMT+8)
+    # Off-peak minute (:25) avoids top-of-the-hour GitHub Actions queue congestion
+    - cron: '25 9,17 * * *'
   workflow_dispatch:
     inputs:
       pr_count:
