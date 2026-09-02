@@ -4,6 +4,7 @@ import { Command } from 'commander';
 import { IntensityLevel, PatternName } from './config/types';
 import { CommitRunner } from './engine/commitRunner';
 import { GitExec } from './engine/gitExec';
+import { Healer } from './engine/healer';
 import { Verifier } from './engine/verifier';
 import { PatternEngine } from './logic/patternEngine';
 import { Logger } from './utils/logger';
@@ -207,6 +208,30 @@ program
       Logger.success(`Pair Sync complete: ${results.length} PRs created, ${mergedCount} merged successfully.`);
     } catch (err: any) {
       Logger.error(`Pair Sync failed: ${err.message}`);
+      process.exit(1);
+    }
+  });
+
+/**
+ * HEAL COMMAND
+ * Identifies and drops violating Saturday commits via automated interactive rebase.
+ */
+program
+  .command('heal')
+  .description('Self-healing protocol to identify and drop violating Saturday commits from git history')
+  .option('-b, --branch <name>', 'Target branch name to heal', 'main')
+  .option('-m, --max-commits <number>', 'Maximum commits to scan and evaluate for healing', '5000')
+  .action((options) => {
+    try {
+      const branch = options.branch || 'main';
+      const maxCommits = parseInt(options.maxCommits, 10) || 5000;
+
+      const success = Healer.heal(branch, maxCommits);
+      if (!success) {
+        process.exit(1);
+      }
+    } catch (err: any) {
+      Logger.error(`Self-healing protocol failed: ${err.message}`);
       process.exit(1);
     }
   });

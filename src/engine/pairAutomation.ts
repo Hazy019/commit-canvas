@@ -1,6 +1,6 @@
 import { GitExec } from './gitExec';
 import { Logger } from '../utils/logger';
-import { formatDateUTC } from '../utils/timezone';
+import { formatDateUTC, getUTCDayOfWeek } from '../utils/timezone';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -142,6 +142,11 @@ export class PairAutomationEngine {
     );
 
     const now = new Date();
+    if (getUTCDayOfWeek(now) === 6) {
+      Logger.warn("Saturday detected (UTC day 6). Skipping PR automation to enforce 'all-but-sat' contribution rule.");
+      return [];
+    }
+
     const dateStr = formatDateUTC(now);
 
     for (let i = 0; i < count; i++) {

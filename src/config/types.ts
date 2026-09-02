@@ -71,6 +71,7 @@ export interface VerifyOptions {
   pattern?: PatternName;
   branch?: string;
   maxCommits?: number;
+  cwd?: string;
 }
 
 export interface VerificationResult {

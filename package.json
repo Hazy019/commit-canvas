@@ -13,6 +13,7 @@
     "preview": "ts-node src/cli.ts preview",
     "sync": "ts-node src/cli.ts sync",
     "verify": "ts-node src/cli.ts verify",
+    "heal": "ts-node src/cli.ts heal",
     "test": "ts-node tests/run.ts"
   },
   "keywords": [

@@ -12,7 +12,7 @@ export class Verifier {
     const patternName: PatternName = options.pattern ?? 'all-but-sat';
     Logger.info(`Starting Git History Verification for pattern rule '${patternName}'...`);
 
-    const commits = GitExec.getCommitLog(options.maxCommits ?? 5000);
+    const commits = GitExec.getCommitLog(options.maxCommits ?? 5000, options.cwd);
     let totalScanned = commits.length;
     let matchingCanvasCommits = 0;
     let saturdayCommitsFound = 0;

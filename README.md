@@ -69,6 +69,15 @@ Automates pull request creation with co-authored git commits to advance GitHub's
 npx ts-node src/cli.ts pair-sync --count=1 --coauthor-name="Mitakashim3" --coauthor-email="Mitakashim3@users.noreply.github.com" --auto-merge=false
 ```
 
+### 6. Self-Healing Protocol (`heal`)
+Identifies and drops violating Saturday commits from git history via automated interactive rebase and state recovery:
+
+```bash
+npm run heal
+# or
+npx ts-node src/cli.ts heal --branch=main
+```
+
 ## Running Unit Tests
 
 ```bash
