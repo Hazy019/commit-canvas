@@ -20,6 +20,10 @@ on:
         description: 'PR Category (docs, chore, refactor, types, perf)'
         required: false
         default: 'docs'
+      timezone_offset:
+        description: 'Timezone offset in hours (default 8 for GMT+8 / Asia/Manila)'
+        required: false
+        default: '8'
       user_email:
         description: 'Target author email (leave blank to use secrets.GIT_USER_EMAIL)'
         required: false
@@ -33,22 +37,39 @@ jobs:
       pull-requests: write
 
     steps:
+      - name: Timezone & Saturday Blackout Pre-Flight Check
+        id: blackout-check
+        run: |
+          LOCAL_DOW=$(TZ="Asia/Manila" date +%u) # 1=Mon .. 6=Sat, 7=Sun
+          LOCAL_DATE=$(TZ="Asia/Manila" date '+%Y-%m-%d %H:%M:%S %Z')
+          echo "Current time in target timezone: $LOCAL_DATE (Day index: $LOCAL_DOW)"
+          if [ "$LOCAL_DOW" -eq 6 ]; then
+            echo "::warning title=Saturday Blackout Gate::Today is Saturday in target timezone (GMT+8). Skipping PR execution to strictly preserve commit-canvas 'all-but-sat' pattern."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Checkout Repository History
+        if: steps.blackout-check.outputs.skip != 'true'
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
           token: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
 
       - name: Setup Node.js Environment
+        if: steps.blackout-check.outputs.skip != 'true'
         uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
 
       - name: Install Dependencies
+        if: steps.blackout-check.outputs.skip != 'true'
         run: npm ci || npm install
 
       - name: Validate GitHub Authentication Token
+        if: steps.blackout-check.outputs.skip != 'true'
         run: |
           if [ -n "${{ secrets.GH_PAT }}" ]; then
             echo "::notice title=Auth Status::Using GH_PAT (PR will be authored directly by @${{ github.actor }} and attributed to your profile stats)."
@@ -57,6 +78,7 @@ jobs:
           fi
 
       - name: Configure Git Credentials
+        if: steps.blackout-check.outputs.skip != 'true'
         run: |
           USER_EMAIL="${{ inputs.user_email }}"
           if [ -z "$USER_EMAIL" ]; then
@@ -69,16 +91,19 @@ jobs:
           git config user.email "$USER_EMAIL"
 
       - name: Execute Pull Shark PR Engine
+        if: steps.blackout-check.outputs.skip != 'true'
         run: |
           PR_COUNT="${{ inputs.pr_count }}"
           AUTO_MERGE="${{ inputs.auto_merge }}"
           CATEGORY="${{ inputs.category }}"
           USER_EMAIL="${{ inputs.user_email }}"
+          TZ_OFFSET="${{ inputs.timezone_offset }}"
 
           # Fallbacks for scheduled cron (runs in manual merge or auto merge mode)
           PR_COUNT="${PR_COUNT:-1}"
           AUTO_MERGE="${AUTO_MERGE:-false}"
           CATEGORY="${CATEGORY:-docs}"
+          TZ_OFFSET="${TZ_OFFSET:-8}"
           if [ -z "$USER_EMAIL" ]; then
             USER_EMAIL="${{ secrets.GIT_USER_EMAIL }}"
           fi
@@ -86,8 +111,14 @@ jobs:
             USER_EMAIL="Kyrell0602@gmail.com"
           fi
 
-          npx ts-node src/cli.ts pr-sync --count=$PR_COUNT --category=$CATEGORY --email="$USER_EMAIL" --auto-merge="$AUTO_MERGE"
+          npx ts-node src/cli.ts pr-sync \
+            --count=$PR_COUNT \
+            --category=$CATEGORY \
+            --email="$USER_EMAIL" \
+            --auto-merge="$AUTO_MERGE" \
+            --timezone-offset=$TZ_OFFSET
         env:
           GH_TOKEN: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
+
 

@@ -1,6 +1,6 @@
 import { GitExec } from './gitExec';
 import { Logger } from '../utils/logger';
-import { formatDateUTC, getUTCDayOfWeek } from '../utils/timezone';
+import { formatDateLocal, formatDateUTC, getLocalDayOfWeek, isBlackoutDay } from '../utils/timezone';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -13,6 +13,9 @@ export interface PairAutomationOptions {
   coauthorEmail?: string;
   category?: 'collab' | 'docs' | 'refactor' | 'types' | 'perf' | 'feature';
   cwd?: string;
+  timezoneOffsetHours?: number;
+  blackoutDays?: number[];
+  targetDate?: Date;
 }
 
 export interface PairPrResult {
@@ -119,6 +122,9 @@ export class PairAutomationEngine {
       coauthorEmail: options.coauthorEmail || 'Mitakashim3@users.noreply.github.com',
       cwd: options.cwd || process.cwd(),
       category: options.category,
+      timezoneOffsetHours: options.timezoneOffsetHours ?? 8,
+      blackoutDays: options.blackoutDays ?? [6],
+      targetDate: options.targetDate,
     };
   }
 
@@ -137,17 +143,24 @@ export class PairAutomationEngine {
     const results: PairPrResult[] = [];
     const coauthorStr = `${this.options.coauthorName} <${this.options.coauthorEmail}>`;
 
+    const now = this.options.targetDate || new Date();
+    const offset = this.options.timezoneOffsetHours ?? 8;
+    const blackoutDays = this.options.blackoutDays ?? [6];
+
     Logger.info(
-      `Starting Pair Extraordinaire PR Engine (Count: ${count}, Co-Author: @${this.options.coauthorName}, Auto-Merge: ${this.options.autoMerge})...`
+      `Starting Pair Extraordinaire PR Engine (Count: ${count}, Co-Author: @${this.options.coauthorName}, Auto-Merge: ${this.options.autoMerge}, Timezone: GMT+${offset})...`
     );
 
-    const now = new Date();
-    if (getUTCDayOfWeek(now) === 6) {
-      Logger.warn("Saturday detected (UTC day 6). Skipping PR automation to enforce 'all-but-sat' contribution rule.");
+    if (isBlackoutDay(now, blackoutDays, offset)) {
+      const localDow = getLocalDayOfWeek(now, offset);
+      const localDateStr = formatDateLocal(now, offset);
+      Logger.warn(
+        `Blackout Day detected (Day ${localDow}, Local Date: ${localDateStr} in GMT+${offset}). Skipping PR automation to strictly enforce 'all-but-sat' contribution rule.`
+      );
       return [];
     }
 
-    const dateStr = formatDateUTC(now);
+    const dateStr = formatDateLocal(now, offset);
 
     for (let i = 0; i < count; i++) {
       const templateIndex = (now.getTime() + i) % PAIR_PR_TEMPLATES.length;

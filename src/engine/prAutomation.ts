@@ -1,6 +1,6 @@
 import { GitExec } from './gitExec';
 import { Logger } from '../utils/logger';
-import { formatDateUTC, getUTCDayOfWeek } from '../utils/timezone';
+import { formatDateLocal, formatDateUTC, getLocalDayOfWeek, isBlackoutDay } from '../utils/timezone';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -11,6 +11,9 @@ export interface PrAutomationOptions {
   authorName?: string;
   category?: 'docs' | 'chore' | 'refactor' | 'types' | 'perf';
   cwd?: string;
+  timezoneOffsetHours?: number;
+  blackoutDays?: number[];
+  targetDate?: Date;
 }
 
 export interface PrResult {
@@ -108,6 +111,9 @@ export class PrAutomationEngine {
       authorName: options.authorName || 'Hazy019',
       cwd: options.cwd || process.cwd(),
       category: options.category,
+      timezoneOffsetHours: options.timezoneOffsetHours ?? 8,
+      blackoutDays: options.blackoutDays ?? [6],
+      targetDate: options.targetDate,
     };
   }
 
@@ -116,15 +122,24 @@ export class PrAutomationEngine {
     const count = Math.max(1, Math.min(this.options.count ?? 1, 5));
     const results: PrResult[] = [];
 
-    Logger.info(`Starting Pull-Shark PR Automation Engine (Count: ${count}, Auto-Merge: ${this.options.autoMerge})...`);
+    const now = this.options.targetDate || new Date();
+    const offset = this.options.timezoneOffsetHours ?? 8;
+    const blackoutDays = this.options.blackoutDays ?? [6];
 
-    const now = new Date();
-    if (getUTCDayOfWeek(now) === 6) {
-      Logger.warn("Saturday detected (UTC day 6). Skipping PR automation to enforce 'all-but-sat' contribution rule.");
+    Logger.info(
+      `Starting Pull-Shark PR Automation Engine (Count: ${count}, Auto-Merge: ${this.options.autoMerge}, Timezone: GMT+${offset})...`
+    );
+
+    if (isBlackoutDay(now, blackoutDays, offset)) {
+      const localDow = getLocalDayOfWeek(now, offset);
+      const localDateStr = formatDateLocal(now, offset);
+      Logger.warn(
+        `Blackout Day detected (Day ${localDow}, Local Date: ${localDateStr} in GMT+${offset}). Skipping PR automation to strictly enforce 'all-but-sat' contribution rule.`
+      );
       return [];
     }
 
-    const dateStr = formatDateUTC(now);
+    const dateStr = formatDateLocal(now, offset);
 
     for (let i = 0; i < count; i++) {
       const templateIndex = (now.getTime() + i) % PR_TEMPLATES.length;

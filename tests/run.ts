@@ -7,8 +7,17 @@ import { Verifier } from '../src/engine/verifier';
 import { DateIterator } from '../src/logic/dateIterator';
 import { DayOfWeekFilter } from '../src/logic/dayOfWeekFilter';
 import { PatternEngine } from '../src/logic/patternEngine';
+import { PrAutomationEngine } from '../src/engine/prAutomation';
 import { PairAutomationEngine, PAIR_PR_TEMPLATES } from '../src/engine/pairAutomation';
-import { createHumanCommitTimestampUTC, formatDateUTC, getUTCDayOfWeek, parseDateUTC } from '../src/utils/timezone';
+import {
+  createHumanCommitTimestampUTC,
+  formatDateLocal,
+  formatDateUTC,
+  getLocalDayOfWeek,
+  getUTCDayOfWeek,
+  isBlackoutDay,
+  parseDateUTC,
+} from '../src/utils/timezone';
 
 console.log('\n========================================');
 console.log(' RUNNING COMMIT-CANVAS UNIT TEST SUITE');
@@ -283,8 +292,50 @@ test('Healer identifies and drops violating Saturday commits cleanly', () => {
   }
 });
 
+// 12. Timezone & Local Day-of-Week Utilities Test
+test('Timezone utilities strictly compute GMT+8 offset across UTC midnight boundary', () => {
+  // Friday night in UTC: 2026-08-28 17:00:00 UTC
+  // In GMT+8 (+8h): 2026-08-29 01:00:00 (Saturday morning!)
+  const friNightUTC = new Date('2026-08-28T17:00:00Z');
+  assert.strictEqual(getUTCDayOfWeek(friNightUTC), 5, 'UTC day should be Friday (5)');
+  assert.strictEqual(getLocalDayOfWeek(friNightUTC, 8), 6, 'Local day in GMT+8 should be Saturday (6)');
+  assert.strictEqual(isBlackoutDay(friNightUTC, [6], 8), true, 'Must identify as blackout day (Saturday) in GMT+8');
+  assert.strictEqual(formatDateLocal(friNightUTC, 8), '2026-08-29', 'Local date formatted in GMT+8 must be 2026-08-29');
+
+  // Friday morning in GMT+8: 2026-08-28 02:00:00 UTC (10:00 AM GMT+8)
+  const friMorning = new Date('2026-08-28T02:00:00Z');
+  assert.strictEqual(getLocalDayOfWeek(friMorning, 8), 5, 'Local day in GMT+8 should be Friday (5)');
+  assert.strictEqual(isBlackoutDay(friMorning, [6], 8), false, 'Friday morning must NOT be blackout day');
+  assert.strictEqual(formatDateLocal(friMorning, 8), '2026-08-28');
+});
+
+// 13. PR & Pair Engine Saturday Blackout Gate Test
+test('PrAutomationEngine and PairAutomationEngine strictly skip execution on Saturday in GMT+8', () => {
+  // Simulate Saturday in GMT+8 (Friday 18:00 UTC = Saturday 02:00 GMT+8)
+  const saturdayLocal = new Date('2026-08-28T18:00:00Z');
+
+  const prEngine = new PrAutomationEngine({
+    targetDate: saturdayLocal,
+    timezoneOffsetHours: 8,
+    count: 2,
+    autoMerge: true,
+  });
+  const prResults = prEngine.run();
+  assert.strictEqual(prResults.length, 0, 'PR Engine must return empty array on Saturday in GMT+8');
+
+  const pairEngine = new PairAutomationEngine({
+    targetDate: saturdayLocal,
+    timezoneOffsetHours: 8,
+    count: 2,
+    autoMerge: true,
+  });
+  const pairResults = pairEngine.run();
+  assert.strictEqual(pairResults.length, 0, 'Pair Engine must return empty array on Saturday in GMT+8');
+});
+
 console.log(`\nResults: ${passed}/${total} unit tests passed.\n`);
 if (passed !== total) {
   process.exit(1);
 }
+
 

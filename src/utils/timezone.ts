@@ -84,6 +84,36 @@ export function getUTCDayOfWeek(date: Date): number {
 }
 
 /**
+ * Returns the day of week (0=Sunday ... 6=Saturday) in a given local timezone offset (hours).
+ * Default offset is +8 (GMT+8 / Asia/Manila).
+ */
+export function getLocalDayOfWeek(date: Date, offsetHours: number = 8): number {
+  const localTime = new Date(date.getTime() + offsetHours * 60 * 60 * 1000);
+  return localTime.getUTCDay();
+}
+
+/**
+ * Checks whether a given Date falls on a configured blackout day (default: Saturday = 6)
+ * in the specified local timezone offset (default: +8 hours for GMT+8).
+ */
+export function isBlackoutDay(
+  date: Date,
+  blackoutDays: number[] = [6],
+  offsetHours: number = 8
+): boolean {
+  const day = getLocalDayOfWeek(date, offsetHours);
+  return blackoutDays.includes(day);
+}
+
+/**
+ * Formats a Date object into a YYYY-MM-DD string in the specified local timezone offset.
+ */
+export function formatDateLocal(date: Date, offsetHours: number = 8): string {
+  const localTime = new Date(date.getTime() + offsetHours * 60 * 60 * 1000);
+  return formatDateUTC(localTime);
+}
+
+/**
  * Adds an integer number of days to a Date in UTC.
  */
 export function addDaysUTC(date: Date, days: number): Date {
@@ -91,3 +121,4 @@ export function addDaysUTC(date: Date, days: number): Date {
   result.setUTCDate(result.getUTCDate() + days);
   return result;
 }
+

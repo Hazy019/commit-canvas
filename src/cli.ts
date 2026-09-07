@@ -152,10 +152,12 @@ program
   .option('--email <email>', 'Target author email', 'Kyrell0602@gmail.com')
   .option('--name <name>', 'Target author name', 'Hazy019')
   .option('--category <category>', 'PR category (docs, chore, refactor, types, perf)')
+  .option('--timezone-offset <hours>', 'Local timezone offset in hours (e.g. 8 for GMT+8)', '8')
   .action(async (options) => {
     try {
       const count = parseInt(options.count, 10);
       const autoMerge = String(options.autoMerge).toLowerCase() === 'true';
+      const timezoneOffsetHours = parseFloat(options.timezoneOffset);
       const { PrAutomationEngine } = await import('./engine/prAutomation');
       const engine = new PrAutomationEngine({
         count,
@@ -163,6 +165,7 @@ program
         authorEmail: options.email,
         authorName: options.name,
         category: options.category,
+        timezoneOffsetHours: isNaN(timezoneOffsetHours) ? 8 : timezoneOffsetHours,
       });
 
       const results = engine.run();
@@ -188,10 +191,12 @@ program
   .option('--coauthor-name <name>', 'Co-author name/handle', 'Mitakashim3')
   .option('--coauthor-email <email>', 'Co-author email', 'Mitakashim3@users.noreply.github.com')
   .option('--category <category>', 'PR category (collab, docs, refactor, types, perf, feature)')
+  .option('--timezone-offset <hours>', 'Local timezone offset in hours (e.g. 8 for GMT+8)', '8')
   .action(async (options) => {
     try {
       const count = parseInt(options.count, 10);
       const autoMerge = String(options.autoMerge).toLowerCase() === 'true';
+      const timezoneOffsetHours = parseFloat(options.timezoneOffset);
       const { PairAutomationEngine } = await import('./engine/pairAutomation');
       const engine = new PairAutomationEngine({
         count,
@@ -201,6 +206,7 @@ program
         coauthorName: options.coauthorName,
         coauthorEmail: options.coauthorEmail,
         category: options.category,
+        timezoneOffsetHours: isNaN(timezoneOffsetHours) ? 8 : timezoneOffsetHours,
       });
 
       const results = engine.run();
