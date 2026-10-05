@@ -118,4 +118,5 @@ jobs:
 
       - name: Push Updated Contribution History
         run: |
-          git push origin HEAD:${{ github.ref_name }} --force
+          git pull --rebase origin ${{ github.ref_name }} || true
+          git push origin HEAD:${{ github.ref_name }} || git push origin HEAD:${{ github.ref_name }} --force-with-lease

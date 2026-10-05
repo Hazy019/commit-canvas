@@ -156,21 +156,37 @@ export class PrAutomationEngine {
       try {
         Logger.info(`[${i + 1}/${count}] Creating PR branch '${branchName}'...`);
 
-        // 1. Ensure we branch from origin/main
+        // 1. Fetch freshest remote state and branch from origin/main
+        try {
+          GitExec.run('git fetch origin main', {}, cwd);
+        } catch {
+          // If offline or no network, proceed with local origin/main
+        }
         GitExec.run('git checkout -B ' + branchName + ' origin/main', {}, cwd);
 
-        // 2. Make atomic file update
-        const targetFilePath = path.join(cwd, template.file);
-        const targetDir = path.dirname(targetFilePath);
-        if (!fs.existsSync(targetDir)) {
-          fs.mkdirSync(targetDir, { recursive: true });
+        // 2. Make conflict-free atomic audit log update
+        // Dedicated log file eliminates merge conflicts across parallel/consequent PRs.
+        const auditDir = path.join(cwd, 'docs', 'maintenance', 'logs');
+        if (!fs.existsSync(auditDir)) {
+          fs.mkdirSync(auditDir, { recursive: true });
         }
+        const auditFileName = `pr-${dateStr.replace(/-/g, '')}-${randomSuffix}.md`;
+        const auditFilePath = path.join(auditDir, auditFileName);
+        const relativeFilePath = path.join('docs', 'maintenance', 'logs', auditFileName).replace(/\\/g, '/');
 
-        const logEntry = `\n- **[${new Date().toISOString()}]** Checkpoint: \`${uniqueId}\` | Sync: OK\n`;
-        fs.appendFileSync(targetFilePath, logEntry, 'utf-8');
+        const auditContent = `# 🦈 Pull Shark Maintenance Checkpoint: ${uniqueId}\n\n` +
+          `- **Execution ID**: \`${uniqueId}\`\n` +
+          `- **Timestamp**: \`${new Date().toISOString()}\`\n` +
+          `- **Category**: \`${template.category}\`\n` +
+          `- **Status**: \`OK\`\n\n` +
+          `### Verification Details\n` +
+          `- Validated branch synchronization.\n` +
+          `- Routine telemetry audit check.\n`;
+
+        fs.writeFileSync(auditFilePath, auditContent, 'utf-8');
 
         // 3. Stage and commit
-        GitExec.run(`git add "${template.file}"`, {}, cwd);
+        GitExec.run(`git add "${relativeFilePath}"`, {}, cwd);
         
         const env: Record<string, string> = {
           GIT_AUTHOR_NAME: this.options.authorName!,

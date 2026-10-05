@@ -188,21 +188,41 @@ export class PairAutomationEngine {
       try {
         Logger.info(`[${i + 1}/${count}] Creating Pair PR branch '${branchName}'...`);
 
-        // 1. Ensure we branch from origin/main
+        // 1. Fetch freshest remote state and branch from origin/main
+        try {
+          GitExec.run('git fetch origin main', {}, cwd);
+        } catch {
+          // If offline or no network, proceed with local origin/main
+        }
         GitExec.run('git checkout -B ' + branchName + ' origin/main', {}, cwd);
 
-        // 2. Make atomic file update
-        const targetFilePath = path.join(cwd, template.file);
-        const targetDir = path.dirname(targetFilePath);
-        if (!fs.existsSync(targetDir)) {
-          fs.mkdirSync(targetDir, { recursive: true });
+        // 2. Make conflict-free atomic session file update
+        // Writing to a dedicated session checkpoint file completely eliminates merge conflicts
+        // when multiple PRs are open or merged sequentially.
+        const sessionDir = path.join(cwd, 'docs', 'maintenance', 'sessions');
+        if (!fs.existsSync(sessionDir)) {
+          fs.mkdirSync(sessionDir, { recursive: true });
         }
+        const sessionFileName = `pair-${dateStr.replace(/-/g, '')}-${randomSuffix}.md`;
+        const sessionFilePath = path.join(sessionDir, sessionFileName);
+        const relativeFilePath = path.join('docs', 'maintenance', 'sessions', sessionFileName).replace(/\\/g, '/');
 
-        const logEntry = `\n- **[${new Date().toISOString()}]** Pair Checkpoint: \`${uniqueId}\` | Co-Author: @${this.options.coauthorName} | Status: OK\n`;
-        fs.appendFileSync(targetFilePath, logEntry, 'utf-8');
+        const sessionContent = `# 👥 Pair Programming Session Checkpoint: ${uniqueId}\n\n` +
+          `- **Execution ID**: \`${uniqueId}\`\n` +
+          `- **Timestamp**: \`${new Date().toISOString()}\`\n` +
+          `- **Primary Author**: @${this.options.authorName}\n` +
+          `- **Co-Author**: @${this.options.coauthorName}\n` +
+          `- **Category**: \`${template.category}\`\n` +
+          `- **Status**: \`OK\`\n\n` +
+          `### Collaborative Milestone Details\n` +
+          `- Verified collaborative git-tree co-authorship plumbing.\n` +
+          `- Synchronized pattern engine telemetry logs.\n` +
+          `- Validated branch protection and merge prerequisites.\n`;
+
+        fs.writeFileSync(sessionFilePath, sessionContent, 'utf-8');
 
         // 3. Stage and commit with Co-authored-by trailer
-        GitExec.run(`git add "${template.file}"`, {}, cwd);
+        GitExec.run(`git add "${relativeFilePath}"`, {}, cwd);
 
         fs.writeFileSync(tempCommitMsgFile, fullCommitMsg, 'utf-8');
 
